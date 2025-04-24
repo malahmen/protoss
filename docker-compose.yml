@@ -1,0 +1,165 @@
+services:
+  mothership:
+    container_name: mothership
+    networks:
+      - mothership-core
+    build:
+      context: ./fleet-beacon
+      args:
+        MODEL_NAME: ${MODEL_NAME}
+    env_file:
+      - ./.env
+      - ./fleet-beacon/.env
+    ports:
+      - "${OLLAMA_PORT}:${OLLAMA_PORT}"
+    volumes:
+      - ./stargate:/stargate
+    mem_limit: 4g
+    memswap_limit: 8g 
+    restart: unless-stopped
+  high-templar:
+    image: ${DB_VERSION}
+    container_name: high-templar
+    networks:
+      - mothership-core
+    env_file:
+      - ./.env
+      - ./templar-archives/.env
+    ports:
+      - "${DB_PORT}:${DB_PORT}"
+    volumes:
+      - ./templar-archives/stasis-ward:${DB_VOLUME:-/stasis-ward}
+    restart: unless-stopped
+  tempest:
+    container_name: tempest
+    networks:
+      - mothership-core
+    build: ./assimilator
+    env_file:
+      - ./.env
+      - ./assimilator/.env
+    ports:
+      - "${REDIS_PORT_IN}:${REDIS_PORT_OUT}"
+    volumes:
+      - ./assimilator/redis.conf:/usr/local/etc/redis/redis.conf
+    depends_on:
+      - mothership
+      - high-templar
+    mem_limit: 2g
+    restart: unless-stopped
+  sentry:
+    container_name: sentry
+    networks:
+      - mothership-core
+    build: ./cybernetics-core
+    env_file:
+      - ./.env
+      - ./cybernetics-core/.env
+    volumes:
+      - ./stargate:/stargate
+      - ./pylon:/carrier/pylon
+    depends_on:
+      - tempest
+    restart: unless-stopped
+  zealot:
+    container_name: zealot
+    networks:
+      - mothership-core
+    build: ./gateway
+    env_file:
+      - ./.env
+      - ./gateway/.env
+    volumes:
+      - ./pylon:/carrier/pylon
+    depends_on:
+      - tempest
+    restart: unless-stopped
+  stalker:
+    container_name: stalker
+    networks:
+      - mothership-core
+    build: ./twilight-council
+    env_file:
+      - ./.env
+      - ./twilight-council/.env
+    volumes:
+      - ./pylon:/carrier/pylon
+    depends_on:
+      - tempest
+    restart: unless-stopped
+  probe:
+    container_name: probe
+    networks:
+      - mothership-core
+    build: ./nexus
+    env_file:
+      - ./.env
+      - ./nexus/.env
+    volumes:
+      - ./pylon:/carrier/pylon
+    depends_on:
+      - tempest
+      - mothership
+      - high-templar
+    restart: unless-stopped
+  disruptor:
+    container_name: disruptor
+    networks:
+      - mothership-core
+    build: ./robotics-bay
+    env_file:
+      - ./.env
+      - ./robotics-bay/.env
+    volumes:
+      - ./pylon:/carrier/pylon
+    depends_on:
+      - tempest
+      - high-templar
+    restart: unless-stopped
+  oracle:
+    container_name: oracle
+    networks:
+      - mothership-core
+    build:
+      context: ./stasis-ward
+      args:
+        NODE_IMAGE: ${NODE_IMAGE}
+        NGINX_IMAGE: ${NGINX_IMAGE}
+    env_file:
+      - ./.env
+      - ./stasis-ward/.env
+    ports:
+      - "${ORACLE_PORT_IN}:${ORACLE_PORT_OUT}"
+    depends_on:
+      - disruptor
+    restart: unless-stopped
+  observer:
+    container_name: observer
+    networks:
+      - mothership-core
+    build: ./robotics-facility-warps
+    env_file:
+      - ./.env
+      - ./robotics-facility-warps/.env
+    volumes:
+      - ./pylon:/carrier/pylon
+    depends_on:
+      - tempest
+    restart: unless-stopped
+  dark-templar:
+    container_name: dark-templar
+    networks:
+      - mothership-core
+    build: ./dark-shrine
+    env_file:
+      - ./.env
+      - ./dark-shrine/.env
+    volumes:
+      - ./pylon:/carrier/pylon
+    depends_on:
+      - tempest
+    restart: unless-stopped
+
+networks:
+  mothership-core:
+    driver: bridge
