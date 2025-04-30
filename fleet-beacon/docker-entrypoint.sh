@@ -17,5 +17,5 @@ until curl -s http://${OLLAMA_HOST}:${OLLAMA_PORT}/api/tags > /dev/null; do
 done
 echo "✅ Zhakul, an'ul na'zeer. Ollama is ready!"
 
-# Keep the process running
+# Keep the process running careful with LF vs CRLF
 wait $OLLAMA_PID
