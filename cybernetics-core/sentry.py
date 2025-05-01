@@ -6,7 +6,7 @@ import traceback
 import structlog
 import os
 from pylon import settings, redis_gateway
-
+from cybernetic_core_settings import cybernetic_core_settings
 
 logger = structlog.get_logger()
 mime = magic.Magic(mime=True)
@@ -14,10 +14,10 @@ timeout = aiohttp.ClientTimeout(total=90)  # 90 seconds
 seen_files = set()
 
 def is_supported(filename):
-    return any(filename.lower().endswith(ext) for ext in settings.supported_extensions)
+    return any(filename.lower().endswith(ext) for ext in cybernetic_core_settings.supported_extensions)
 
 def get_current_files():
-    return {f for f in os.listdir(settings.WATCH_DIR) if is_supported(f)}
+    return {f for f in os.listdir(cybernetic_core_settings.WATCH_FOLDER) if is_supported(f)}
 
 async def send_files(session, filepath):
     """Asynchronous file ingestion."""
@@ -37,11 +37,10 @@ async def send_files(session, filepath):
 
         await redis_gateway.send_message(data, settings.REDIS_QUEUE_FILES)
 
-        processed_dir = os.path.join(settings.WATCH_DIR, "processed")
+        processed_dir = os.path.join(cybernetic_core_settings.WATCH_FOLDER, cybernetic_core_settings.PROCESSED_FOLDER)
         logger.warn("[Sentry] Sending processed file into directory", directory=processed_dir)
         os.makedirs(processed_dir, exist_ok=True)
         os.rename(filepath, os.path.join(processed_dir, filename))
-
 
 async def look_for_files():
     await asyncio.sleep(10)
@@ -54,7 +53,7 @@ async def look_for_files():
 
                 tasks = []
                 for filename in new_files | modified_files:
-                    full_path = os.path.join(settings.WATCH_DIR, filename)
+                    full_path = os.path.join(cybernetic_core_settings.WATCH_FOLDER, filename)
                     tasks.append(send_files(session, full_path))
 
                 # Wait for all tasks to complete
@@ -66,7 +65,7 @@ async def look_for_files():
                 logger.error("[Sentry down] Broken loop ", error=str(e))
                 traceback.print_exc()
 
-            await asyncio.sleep(settings.CHECK_INTERVAL)
+            await asyncio.sleep(cybernetic_core_settings.CHECK_INTERVAL)
 
 if __name__ == "__main__":
     logger.info("[Sentry] Patrolling for new files...")
