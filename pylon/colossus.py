@@ -1,15 +1,16 @@
-# redis client code
 import redis.asyncio as redis
 import uuid
 import json
+import base64
 import traceback
 import structlog
 import time
+from typing import Optional, Dict, Any
 from pylon import settings, track_processing_time, update_queue_size, record_error
 
+# redis client code
 class redis_gateway():
     logger = structlog.get_logger()
-
 
     async def get_redis_connection():
         return await redis.Redis(
@@ -62,9 +63,65 @@ class redis_gateway():
                         error=str(e),
                         traceback=traceback.format_exc())
             time.sleep(settings.RETRY_DELAY)
-            
+
     def get_queue_size(self, queue):
         if not queue:
             queue = settings.REDIS_QUEUE
         redis = self.get_redis_connection()
         return redis.llen(queue)
+
+    def decode_message(self, message):
+        try:
+            _, raw_data = message
+            decoded_message = json.loads(raw_data)
+            self.logger.info("[Colossus] Decoded message ", message=decoded_message)
+            return decoded_message
+        except json.JSONDecodeError as e:
+            record_error(error_type='invalid_json')
+            self.logger.error("[Colossus hit] Invalid json ", error=str(e))
+            return None
+
+    def is_valid_message(self, message: Dict[str, Any], required_fields: Dict[str, Any]) -> bool:
+        """Validate message structure and content"""
+
+        for field in required_fields:
+            if field not in message:
+                self.logger.error(f"[Colossus hit] Missing required field: {field} ")
+                return False
+            
+        if not message["content"]:
+            self.logger.error(f"[Colossus hit] Empty content field ")
+            return False
+        
+        try:
+            base64.b64decode(message["content"])
+        except Exception as e:
+            self.logger.error(f"[Colossus hit] Invalid base64 content: {str(e)}")
+            return False
+
+        return True
+
+# costum error class
+class ProcessingError(Exception):
+    """Custom exception for processing errors"""
+    pass
+
+# error suppressing
+@contextlib.contextmanager
+def suppress_stderr():
+    with open(os.devnull, "w") as devnull:
+        old_stderr = sys.stderr
+        sys.stderr = devnull
+        try:
+            yield
+        finally:
+            sys.stderr = old_stderr
+
+# convertion to JSON
+def json_to_text(obj, indent=0):
+    if isinstance(obj, dict):
+        return "\n".join(f"{'  ' * indent}{k}: {json_to_text(v, indent + 1)}" for k, v in obj.items())
+    elif isinstance(obj, list):
+        return "\n".join(f"{'  ' * indent}- {json_to_text(item, indent + 1)}" for item in obj)
+    else:
+        return str(obj)
