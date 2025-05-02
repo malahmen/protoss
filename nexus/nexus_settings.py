@@ -3,9 +3,7 @@ from pydantic import Field
 from typing import Set
 import ast
 
-class ExtractorSettings(BaseSettings):
-    WATCH_FOLDER: str = Field(..., env="WATCH_FOLDER")
-    PROCESSED_FOLDER: str = Field(..., env="PROCESSED_FOLDER")
+class EmbedderSettings(BaseSettings):
     CHECK_INTERVAL: int = Field(..., env="CHECK_INTERVAL")
     SUPPORTED_EXTENSIONS: str = Field(..., env="SUPPORTED_EXTENSIONS")
     
@@ -25,4 +23,4 @@ class ExtractorSettings(BaseSettings):
         case_sensitive = True
         extra = "allow"  # Allow extra fields from environment variables
 
-extractor_settings = ExtractorSettings()
+embedder_settings = EmbedderSettings()

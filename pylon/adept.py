@@ -1,0 +1,60 @@
+# message vars class
+
+class outputMessages():
+    # setup - immortal.py
+    UNSUPPORTED_EXTENSIONS = "Invalid format for SUPPORTED_EXTENSIONS"
+    EXPECTED_EXTENSIONS = "Expected a string representation of a set, e.g. .pdf, .txt"
+    # redis - colossus.py
+    REDIS_MESSAGE_OUT_OK = "[Colossus] Message fired with key "
+    REDIS_MESSAGE_OUT_KO = "[Colossus down] Failed to fire message "
+    REDIS_FAILED_TO_READ = "[Colossus down] Failed to get message "
+    REDIS_FAILED_TO_CONNECT = "[Colossus down] Message blocked, no connection "
+    REDIS_NO_MESSAGES = "[Colossus] No messages, survailing..."
+    REDIS_EXCEPTION = "[Colossus down] Just exploded "
+    REDIS_DECODED_OK = "[Colossus] Decoded message "
+    REDIS_DECODED_KO = "[Colossus hit] Invalid json "
+    REDIS_MSG_FIELD_KO = "[Colossus hit] Missing required field"
+    REDIS_MSG_CONTENT_EMPTY = "[Colossus hit] Empty content field "
+    REDIS_MSG_FORMAT_KO = "[Colossus hit] Invalid base64 content"
+    # watcher - sentry.py
+    WATCHER_INITIALIZATION = "[Sentry] Patrolling for new files..."
+    WATCHER_EXCEPTION = "[Sentry down] Exploded "
+    WATCHER_TERMINATED = "[Sentry] Returning to base..."
+    WATCHER_KO = "[Zealot] Destroyed."
+    WATCHER_READ_FILE_START = "[Sentry] Reading file"
+    WATCHER_MOVE_FILE_START = "[Sentry] Sending processed file into directory"
+    # extractor - zealot.py
+    EXTRACTOR_INITIALIZATION = "[Zealot] Ready to serve."
+    EXTRACTOR_EXCEPTION = "[Zealot down] Exploded "
+    EXTRACTOR_TERMINATED = "[Zealot] Returning to base..."
+    EXTRACTOR_KO = "[Zealot] Destroyed."
+    EXTRACTOR_WAIT_START = "[Zealot] Wating for orders."
+    EXTRACTOR_READ_OK = "[Zealot] Orders received."
+    EXTRACTOR_READ_KO ="[Zealot hit] Unreadable orders."
+    EXTRACTOR_READ_KO_MSG ="No text content found in order "
+    EXTRACTOR_READ_EXCEPTION = "[Zealot hit] Failed to process orders."
+    EXTRACTOR_PDF_KO = "[Zealot hit] Failed to read PDF"
+    EXTRACTOR_CLEANUP_KO = "[Zealot hit] Failed to cleanup temporary file"
+    EXTRACTOR_TEXT_KO = "[Zealot hit] Failed to decode text"
+    EXTRACTOR_JSON_KO = "[Zealot hit] Failed to decode JSON"
+    EXTRACTOR_JSON_KO_MSG = "[Zealot hit] Invalid JSON"
+    EXTRACTOR_JSON_DECODE_KO = "[Zealot hit] Invalide file encoding"
+    EXTRACTOR_UNSUPPORTED_TYPE = "[Zealot hit] Unsupported file type"
+    # chunker - stalker.py
+    CHUNKER_INITIALIZATION = "[Stalker] Ready to serve."
+    CHUNKER_EXCEPTION = "[Stalker down] Exploded "
+    CHUNKER_TERMINATED = "[Stalker] Returning to base..."
+    CHUNKER_KO = "[Stalker] Destroyed."
+    CHUNKER_WAIT_START = "[Stalker] Wating for orders."
+    CHUNKER_READY = "[Stalker] Chunker sharpen"
+    CHUNKER_DONE = "[Stalker] Document chunks extracted"
+    # embedder - probe.py
+    EMBEDDER_INITIALIZATION = "[Probe] Ready to serve."
+    EMBEDDER_EXCEPTION = "[Probe down] Exploded "
+    EMBEDDER_TERMINATED = "[Probe] Returning to base..."
+    EMBEDDER_KO = "[Probe] Destroyed."
+    EMBEDDER_WAIT_START = "[Probe] Wating for orders."
+    # 
+    #
+    # 
+output_messages = outputMessages()

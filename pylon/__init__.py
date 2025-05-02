@@ -2,6 +2,7 @@
 Common utilities and configurations shared across services.
 """
 
+from .adept import output_messages
 from .immortal import settings
 from .colossus import redis_gateway, ProcessingError, json_to_text, suppress_stderr
 from .phoenix import (
@@ -12,6 +13,7 @@ from .phoenix import (
 )
 
 __all__ = [
+	'output_messages',
     'settings',
 	'redis_gateway',
     'ProcessingError',

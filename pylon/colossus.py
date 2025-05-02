@@ -6,7 +6,7 @@ import traceback
 import structlog
 import time
 from typing import Optional, Dict, Any
-from pylon import settings, track_processing_time, update_queue_size, record_error
+from pylon import settings, track_processing_time, update_queue_size, record_error, output_messages
 
 # redis client code
 class redis_gateway():
@@ -33,10 +33,10 @@ class redis_gateway():
             redis = await self.get_redis_connection()
 
             await redis.rpush(queue, json.dumps(data))
-            self.logger.info("[Colossus] Message fired with key ", synapse_id=data['id'])
+            self.logger.info(output_messages.REDIS_MESSAGE_OUT_OK, message_id=data['id'])
             await redis.aclose()
         except Exception as e:
-            self.logger.error("[Colossus down] Failed to fire message ", error=str(e))
+            self.logger.error(output_messages.REDIS_MESSAGE_OUT_KO, error=str(e))
             traceback.print_exc()
             
     def get_message(self, queue):
@@ -48,18 +48,18 @@ class redis_gateway():
             message = redis.blpop(queue, timeout=settings.REDIS_TIMEOUT)
 
             if not message or not isinstance(message, tuple):
-                self.logger.error("[Colossus down] Failed to get message")
+                self.logger.error(output_messages.REDIS_FAILED_TO_READ)
         except (redis.exceptions.ConnectionError) as e:
             record_error(error_type='redis')
-            self.logger.error("[Colossus down] Message blocked, no connection ", error=str(e))
+            self.logger.error(output_messages.REDIS_FAILED_TO_CONNECT, error=str(e))
             time.sleep(settings.RETRY_DELAY)
         except (redis.exceptions.TimeoutError) as e:
-            self.logger.info("[Colossus] No messages, survailing...")
+            self.logger.info(output_messages.REDIS_NO_MESSAGES)
             time.sleep(settings.RETRY_DELAY)
 
         except Exception as e:
             record_error(error_type='unexpected')
-            self.logger.error("[Colossus down] Just exploded ", 
+            self.logger.error(output_messages.REDIS_EXCEPTION, 
                         error=str(e),
                         traceback=traceback.format_exc())
             time.sleep(settings.RETRY_DELAY)
@@ -74,11 +74,11 @@ class redis_gateway():
         try:
             _, raw_data = message
             decoded_message = json.loads(raw_data)
-            self.logger.info("[Colossus] Decoded message ", message=decoded_message)
+            self.logger.info(output_messages.REDIS_DECODED_OK, message=decoded_message)
             return decoded_message
         except json.JSONDecodeError as e:
             record_error(error_type='invalid_json')
-            self.logger.error("[Colossus hit] Invalid json ", error=str(e))
+            self.logger.error(output_messages.REDIS_DECODED_KO, error=str(e))
             return None
 
     def is_valid_message(self, message: Dict[str, Any], required_fields: Dict[str, Any]) -> bool:
@@ -86,17 +86,17 @@ class redis_gateway():
 
         for field in required_fields:
             if field not in message:
-                self.logger.error(f"[Colossus hit] Missing required field: {field} ")
+                self.logger.error(f"{output_messages.REDIS_MSG_FIELD_KO}: {field} ")
                 return False
             
         if not message["content"]:
-            self.logger.error(f"[Colossus hit] Empty content field ")
+            self.logger.error(f"{output_messages.REDIS_MSG_CONTENT_EMPTY}")
             return False
         
         try:
             base64.b64decode(message["content"])
         except Exception as e:
-            self.logger.error(f"[Colossus hit] Invalid base64 content: {str(e)}")
+            self.logger.error(f"{output_messages.REDIS_MSG_FORMAT_KO}: {str(e)}")
             return False
 
         return True

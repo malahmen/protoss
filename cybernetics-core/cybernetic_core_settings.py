@@ -3,7 +3,7 @@ from pydantic import Field
 from typing import Set
 import ast
 
-class CyberneticCoreSettings(BaseSettings):
+class WatcherSettings(BaseSettings):
     WATCH_FOLDER: str = Field(..., env="WATCH_FOLDER")
     PROCESSED_FOLDER: str = Field(..., env="PROCESSED_FOLDER")
     CHECK_INTERVAL: int = Field(..., env="CHECK_INTERVAL")
@@ -25,4 +25,4 @@ class CyberneticCoreSettings(BaseSettings):
         case_sensitive = True
         extra = "allow"  # Allow extra fields from environment variables
 
-cybernetic_core_settings = CyberneticCoreSettings()
+watcher_settings = WatcherSettings()
