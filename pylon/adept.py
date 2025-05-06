@@ -1,6 +1,6 @@
 # message vars class
 
-class outputMessages():
+class OutputMessages():
     # setup - immortal.py
     UNSUPPORTED_EXTENSIONS = "Invalid format for SUPPORTED_EXTENSIONS"
     EXPECTED_EXTENSIONS = "Expected a string representation of a set, e.g. .pdf, .txt"
@@ -54,7 +54,31 @@ class outputMessages():
     EMBEDDER_TERMINATED = "[Probe] Returning to base..."
     EMBEDDER_KO = "[Probe] Destroyed."
     EMBEDDER_WAIT_START = "[Probe] Wating for orders."
-    # 
-    #
-    # 
-output_messages = outputMessages()
+    EMBEDDER_POINTS_GENERATED="[Probe] Qdrant points generated."
+    # metrics - phoenix.py
+    # api - disruptor.py
+    API_HEALTHY="healthy"
+    API_UNHEALTHY="unhealthy"
+    API_SUCCESS="success"
+    API_FALLBACK="fallback"
+    API_HEALTH_KO="[Disruptor hit] System check failed."
+    API_HEALTH_KO_MSG="[Disruptor hit] System is unhealthy."
+    API_QUESTION="[Disruptor] System input"
+    API_QUESTION_KO="[Disruptor hit] System failed to respond."
+    API_CONTEXT_KO="[Disruptor] System failed to retrieve context"
+    API_EMBEDDINGS_START="[Disruptor] Embeddings generation starting"
+    API_EMBEDDINGS_STARTED="[Disruptor] Embeddings generation started"
+    API_EMBEDDINGS_OK="[Disruptor] Embedding generation success"
+    API_EMBEDDINGS_MISS="[Disruptor] System failed to locate embedding field"
+    API_EMBEDDINGS_PROGRESS="[Disruptor] Generation progress"
+    API_EMBEDDINGS_ENDED="[Disruptor] Embeddings generation completed"
+    API_PROMPT="[Disruptor] System prompt"
+    API_PROMPT_EMPTY_MSG="System did not generate any answer"
+    API_PROMPT_EXCEPTION="[Disruptor hit] System prompt failed"
+    API_PROMPT_EXCEPTION_MSG="System unable to generate answer due to service error"
+    API_REQUEST_TAG="[Disruptor] System request"
+    # scrapper
+    # parser
+
+# self initialize
+output_messages = OutputMessages()

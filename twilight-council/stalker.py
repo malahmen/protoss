@@ -2,26 +2,15 @@ import asyncio
 import base64
 import traceback
 import structlog
-from pylon import settings, redis_gateway, track_processing_time, update_queue_size, record_error, ProcessingError, json_to_text, suppress_stderr, output_messages
+from pylon import settings, RedisGateway, suppress_stderr, output_messages
 from twilight_council_settings import chunker_settings
-from typing import Dict, Any
 import traceback
 from langchain_experimental.text_splitter import SemanticChunker
 from langchain_ollama import OllamaEmbeddings
 
 
 logger = structlog.get_logger()
-
-async def send_pages(pages, message_id):
-    encoded_content = base64.b64encode(pages).decode("utf-8")
-    
-    data = {
-            'id': message_id,
-            'content': encoded_content,
-            'content_type': 'text/plain' # still has to be text
-    }
-
-    await redis_gateway.send_message(data, settings.REDIS_QUEUE_PAGES)
+redis_gateway = RedisGateway()
 
 async def look_for_document_messages():
     """Asynchronous pages ingestion."""
@@ -54,7 +43,7 @@ async def look_for_document_messages():
                 logger.info(f"{output_messages.CHUNKER_DONE}", chunks_count=len(pages))
 
                 # send pages to their redis queue
-                send_pages(redis_gateway.generate_message_id(), pages)
+                await redis_gateway.send_it(settings.REDIS_QUEUE_PAGES, pages, redis_gateway.generate_message_id())
 
             except Exception as e:
                 logger.error(f"{output_messages.EXTRACTOR_EXCEPTION}", error=str(e))

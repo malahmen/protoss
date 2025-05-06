@@ -1,23 +1,15 @@
 from pydantic_settings import BaseSettings
 from pydantic import Field
-from typing import Set
-import ast
 
 class EmbedderSettings(BaseSettings):
     CHECK_INTERVAL: int = Field(..., env="CHECK_INTERVAL")
-    SUPPORTED_EXTENSIONS: str = Field(..., env="SUPPORTED_EXTENSIONS")
+    REDIS_CONTENT_FIELD: str = Field(..., env="REDIS_CONTENT_FIELD")
+    REDIS_CONTENT_TYPE: str = Field(..., env="REDIS_CONTENT_TYPE")
+    REDIS_CONTENT_MIME: str = Field(..., env="REDIS_CONTENT_MIME")
     
-    LOG_LEVEL: str = Field(..., env="LOG_LEVEL")
-    LOG_FORMAT: str = Field(..., env="LOG_FORMAT")
+    #LOG_LEVEL: str = Field(..., env="LOG_LEVEL")
+    #LOG_FORMAT: str = Field(..., env="LOG_FORMAT")
 
-    @property
-    def supported_extensions(self) -> Set[str]:
-        """Get the supported extensions as a set."""
-        try:
-            return ast.literal_eval(self.SUPPORTED_EXTENSIONS.strip())
-        except (ValueError, SyntaxError) as e:
-            raise ValueError(f"Invalid format for SUPPORTED_EXTENSIONS: {self.SUPPORTED_EXTENSIONS}. Expected a string representation of a set, e.g. \"{'.pdf', '.txt'}\"") from e
-    
     class Config:
         env_file = ".env"
         case_sensitive = True

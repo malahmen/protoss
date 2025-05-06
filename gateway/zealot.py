@@ -7,7 +7,7 @@ import traceback
 import structlog
 import tempfile
 import os
-from pylon import settings, redis_gateway, track_processing_time, update_queue_size, record_error, ProcessingError, json_to_text, suppress_stderr, output_messages
+from pylon import settings, RedisGateway, record_error, ProcessingError, json_to_text, suppress_stderr, output_messages
 from gateway_settings import extractor_settings
 from typing import Dict, Any
 import traceback
@@ -17,8 +17,9 @@ from pathlib import Path
 
 logger = structlog.get_logger()
 mime = magic.Magic(mime=True)
-timeout = aiohttp.ClientTimeout(total=90)  # 90 seconds
+timeout = aiohttp.ClientTimeout(total=settings.ASYNC_TIMEOUT)
 seen_files = set()
+redis_gateway = RedisGateway()
 
 def extract_documents(file_bytes: bytes, filename: str) -> str:
     ext = Path(filename).suffix.lower()
@@ -46,14 +47,14 @@ def extract_documents(file_bytes: bytes, filename: str) -> str:
 
     elif ext in [".txt", ".md"]:
         try:
-            return file_bytes.decode("utf-8")
+            return file_bytes.decode(settings.ENCODING)
         except UnicodeDecodeError as e:
             logger.error(f"{output_messages.EXTRACTOR_TEXT_KO}", error=str(e), filename=filename)
             raise ProcessingError(f"{output_messages.EXTRACTOR_TEXT_KO}: {e}")
 
     elif ext == ".json":
         try:
-            obj = json.loads(file_bytes.decode("utf-8"))
+            obj = json.loads(file_bytes.decode(settings.ENCODING))
             return json_to_text(obj)
         except json.JSONDecodeError as e:
             logger.error(f"{output_messages.EXTRACTOR_JSON_KO}", error=str(e), filename=filename)
@@ -64,7 +65,7 @@ def extract_documents(file_bytes: bytes, filename: str) -> str:
 
     raise ProcessingError(f"{output_messages.EXTRACTOR_UNSUPPORTED_TYPE}: {ext}")
 
-def read_documents_from_message(message_id: str, filename: str, file_bytes: bytes, content_type: str) -> Dict[str, Any]:
+def read_documents_from_message(message_id: str, filename: str, file_bytes: bytes, content_mime: str) -> Dict[str, Any]:
     """Process a single file"""
     try:
         documents = extract_documents(file_bytes, filename)
@@ -74,7 +75,7 @@ def read_documents_from_message(message_id: str, filename: str, file_bytes: byte
                     synapse_id=message_id,
                     filename=filename, 
                     error=output_messages.EXTRACTOR_READ_KO_MSG,
-                    content_type=content_type)
+                    content_type=content_mime)
             return None
         logger.info(f"{output_messages.EXTRACTOR_READ_OK}")
         return documents
@@ -83,20 +84,9 @@ def read_documents_from_message(message_id: str, filename: str, file_bytes: byte
         logger.error(f"{output_messages.EXTRACTOR_READ_EXCEPTION}", 
                     filename=filename, 
                     error=str(e),
-                    content_type=content_type
+                    content_type=content_mime
                     )
         return None
-
-async def send_documents(documents, message_id):
-    encoded_content = base64.b64encode(documents).decode("utf-8")
-    
-    data = {
-            'id': message_id,
-            'content': encoded_content,
-            'content_type': 'text/plain' # at this point it has to be text
-    }
-
-    await redis_gateway.send_message(data, settings.REDIS_QUEUE_DOCUMENTS)
 
 async def look_for_file_messages():
     """Asynchronous documents ingestion."""
@@ -113,7 +103,7 @@ async def look_for_file_messages():
                     continue
                 
                 # validate message
-                required_fields = ["filename", "id", "content_type", "content"]
+                required_fields = ["filename", "id", settings.REDIS_CONTENT_FIELD, settings.REDIS_CONTENT_TYPE]
                 valid = redis_gateway.is_valid_message(decoded_message, required_fields)
                 if not valid:
                     continue
@@ -121,17 +111,17 @@ async def look_for_file_messages():
                 # read decoded message - all fields have been checked
                 filename = decoded_message.get("filename")
                 message_id = decoded_message.get("id")
-                content_type = decoded_message.get("content_type")
-                base64_content = decoded_message.get("content")
+                content_mime = decoded_message.get(settings.REDIS_CONTENT_TYPE)
+                base64_content = decoded_message.get(settings.REDIS_CONTENT_FIELD)
                 file_bytes = base64.b64decode(base64_content)
                 
                 # extract documents from message
-                documents = read_documents_from_message(message_id, filename, file_bytes, content_type)
+                documents = read_documents_from_message(message_id, filename, file_bytes, content_mime)
                 if not documents:
                     continue
 
                 # send documents to their redis queue
-                send_documents(message_id, documents)
+                await redis_gateway.send_it(queue=settings.REDIS_QUEUE_DOCUMENTS, content=documents, message_id=message_id)
 
             except Exception as e:
                 logger.error(f"{output_messages.EXTRACTOR_EXCEPTION}", error=str(e))

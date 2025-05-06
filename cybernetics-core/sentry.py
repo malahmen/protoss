@@ -5,13 +5,14 @@ import magic
 import traceback
 import structlog
 import os
-from pylon import settings, redis_gateway, output_messages
+from pylon import settings, RedisGateway, output_messages
 from cybernetic_core_settings import watcher_settings
 
 logger = structlog.get_logger()
 mime = magic.Magic(mime=True)
-timeout = aiohttp.ClientTimeout(total=90)  # 90 seconds
+timeout = aiohttp.ClientTimeout(total=settings.ASYNC_TIMEOUT) # 90 seconds
 seen_files = set()
+redis_gateway = RedisGateway()
 
 def is_supported(filename):
     return any(filename.lower().endswith(ext) for ext in watcher_settings.supported_extensions)
@@ -23,22 +24,18 @@ async def send_files(session, filepath):
     """Asynchronous file ingestion."""
     filename = os.path.basename(filepath)
     logger.warn(f"{output_messages.WATCHER_READ_FILE_START}", filename=filename)
+    
     with open(filepath, 'rb') as f:
         file_content = f.read()
-        content_type = mime.from_buffer(file_content)
-        encoded_content = base64.b64encode(file_content).decode("utf-8")
+        content_mipe = mime.from_buffer(file_content)
+        encoded_content = base64.b64encode(file_content).decode(settings.ENCODING)
 
-        data = {
-            'id': redis_gateway.generate_message_id(),
-            'filename': filename,
-            'content': encoded_content,
-            'content_type': content_type
-        }
-
-        await redis_gateway.send_message(data, settings.REDIS_QUEUE_FILES)
+        payload = redis_gateway.generate_message(encoded_content=encoded_content,filename=filename, content_mime=content_mipe)
+        await redis_gateway.send_message(payload, settings.REDIS_QUEUE_FILES)
 
         processed_dir = os.path.join(watcher_settings.WATCH_FOLDER, watcher_settings.PROCESSED_FOLDER)
         logger.warn(f"{output_messages.WATCHER_MOVE_FILE_START}", directory=processed_dir)
+        
         os.makedirs(processed_dir, exist_ok=True)
         os.rename(filepath, os.path.join(processed_dir, filename))
 
