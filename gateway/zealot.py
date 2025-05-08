@@ -17,7 +17,7 @@ from pathlib import Path
 
 logger = structlog.get_logger()
 mime = magic.Magic(mime=True)
-timeout = aiohttp.ClientTimeout(total=settings.ASYNC_TIMEOUT)
+timeout = aiohttp.ClientTimeout(total=settings.async_timeout)
 seen_files = set()
 redis_gateway = RedisGateway()
 
@@ -47,14 +47,14 @@ def extract_documents(file_bytes: bytes, filename: str) -> str:
 
     elif ext in [".txt", ".md"]:
         try:
-            return file_bytes.decode(settings.ENCODING)
+            return file_bytes.decode(settings.encoding)
         except UnicodeDecodeError as e:
             logger.error(f"{output_messages.EXTRACTOR_TEXT_KO}", error=str(e), filename=filename)
             raise ProcessingError(f"{output_messages.EXTRACTOR_TEXT_KO}: {e}")
 
     elif ext == ".json":
         try:
-            obj = json.loads(file_bytes.decode(settings.ENCODING))
+            obj = json.loads(file_bytes.decode(settings.encoding))
             return json_to_text(obj)
         except json.JSONDecodeError as e:
             logger.error(f"{output_messages.EXTRACTOR_JSON_KO}", error=str(e), filename=filename)
@@ -93,7 +93,7 @@ async def look_for_file_messages():
     logger.warn(f"{output_messages.EXTRACTOR_WAIT_START}")
     while True:
             try:
-                file_message = await redis_gateway.get_message(settings.REDIS_QUEUE_FILES)
+                file_message = await redis_gateway.get_message(settings.redis_queue_files)
                 if not file_message:
                     continue
                 
@@ -103,7 +103,7 @@ async def look_for_file_messages():
                     continue
                 
                 # validate message
-                required_fields = ["filename", "id", settings.REDIS_CONTENT_FIELD, settings.REDIS_CONTENT_TYPE]
+                required_fields = ["filename", "id", settings.redis_content_field, settings.redis_content_type]
                 valid = redis_gateway.is_valid_message(decoded_message, required_fields)
                 if not valid:
                     continue
@@ -111,8 +111,8 @@ async def look_for_file_messages():
                 # read decoded message - all fields have been checked
                 filename = decoded_message.get("filename")
                 message_id = decoded_message.get("id")
-                content_mime = decoded_message.get(settings.REDIS_CONTENT_TYPE)
-                base64_content = decoded_message.get(settings.REDIS_CONTENT_FIELD)
+                content_mime = decoded_message.get(settings.redis_content_type)
+                base64_content = decoded_message.get(settings.redis_content_field)
                 file_bytes = base64.b64decode(base64_content)
                 
                 # extract documents from message
@@ -121,13 +121,13 @@ async def look_for_file_messages():
                     continue
 
                 # send documents to their redis queue
-                await redis_gateway.send_it(queue=settings.REDIS_QUEUE_DOCUMENTS, content=documents, message_id=message_id)
+                await redis_gateway.send_it(queue=settings.redis_queue_documents, content=documents, message_id=message_id)
 
             except Exception as e:
                 logger.error(f"{output_messages.EXTRACTOR_EXCEPTION}", error=str(e))
                 traceback.print_exc()
 
-            await asyncio.sleep(extractor_settings.CHECK_INTERVAL)
+            await asyncio.sleep(extractor_settings.check_interval)
 
 if __name__ == "__main__":
     try:

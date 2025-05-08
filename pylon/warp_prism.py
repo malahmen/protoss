@@ -28,7 +28,7 @@ class QdrantGateway:
     def recreate_collection(self):
         if self._qdrant_client:
             self._qdrant_client.recreate_collection(
-                collection_name=settings.COLLECTION_NAME,
+                collection_name=settings.collection_name,
                 vectors_config=VectorParams(
                     size=settings.VECTOR_DIMENSION,
                     distance=Distance.COSINE
@@ -38,12 +38,12 @@ class QdrantGateway:
     def create_payload_index(self, field_name="text", field_schema=PayloadSchemaType.TEXT):
         if self._qdrant_client:
             self._qdrant_client.create_payload_index(
-                collection_name=settings.COLLECTION_NAME,
+                collection_name=settings.collection_name,
                 field_name=field_name,
                 field_schema=field_schema
             )
 
-    def search(self, query_vector, collection=settings.COLLECTION_NAME):
+    def search(self, query_vector, collection=settings.collection_name):
         results = self._qdrant_client.search(
                 collection_name=collection,
                 query_vector=query_vector,
@@ -66,7 +66,7 @@ class QdrantGateway:
                 ]
         return points
     
-    def add_points(self, points, collection=settings.COLLECTION_NAME):
+    def add_points(self, points, collection=settings.collection_name):
         if points:
             self._qdrant_client.upsert(
                         collection_name=collection,

@@ -1,4 +1,5 @@
 # general purpose classes and functions
+import contextlib 
 
 class ProcessingError(Exception):
     """Custom exception for processing errors"""

@@ -13,13 +13,12 @@ ENV PYTHONPATH=/carrier
 
 # Copy the required project files - might be possible to replace /carrier by .
 COPY pylon/ /carrier/pylon
-COPY nexus/ /carrier/nexus
+COPY twilight_council/ /carrier/twilight_council
 COPY .env /carrier/.env
 
-RUN pip install --no-cache-dir -r /carrier/nexus/requirements.txt
+RUN pip install --no-cache-dir -r /carrier/twilight_council/requirements.txt
 
-# Launch a probe unit
-CMD ["python", "./nexus/probe.py"]
+CMD ["python", "./twilight_council/stalker.py"]
 
 # for debuging 
-#CMD ["sh", "-c", "python ./nexus/probe.py || sleep infinity"]
+#CMD ["sh", "-c", "python ./twilight-council/stalker.py || sleep infinity"]

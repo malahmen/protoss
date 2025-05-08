@@ -1,57 +1,65 @@
-from pydantic_settings import BaseSettings
+# pylon/immortal.py
+
+from pydantic_settings import BaseSettings, SettingsConfigDict
 from pydantic import Field
+from pathlib import Path
 
-class Settings(BaseSettings):
-    # AI Configuration
-    AI_MODEL: str = Field(..., env="MODEL_NAME")
-    AI_MODEL_API: str = Field(..., env="MODEL_API")
-    AI_MODEL_HEALTH: str = Field(..., env="MODEL_HEALTH")
-    AI_MODEL_EMBEDDINGS: str = Field(..., env="MODEL_EMBEDDINGS")
-    AI_MODEL_GENERATE: str = Field(..., env="MODEL_GENERATE")
-    AI_MODEL_MAX_CHUNKS: str = Field(..., env="MAX_CHUNKS")
-    AI_MODEL_SCORE: str = Field(..., env="MODEL_SCORE")
-    AI_MODEL_HNSW: str = Field(..., env="AI_MODEL_HNSW")
-    AI_BASE_URL: str = Field(..., env="BASE_URL")
-    AI_EMBED_FIELD: str = Field(..., env="EMBED_FIELD")
+class ApplicationSettings(BaseSettings):
+    # Mothership
+    model_name: str = Field(..., env="MODEL_NAME")
+    model_api: str = Field(..., env="MODEL_API")
+    model_health: str = Field(..., env="MODEL_HEALTH")
+    model_embeddings: str = Field(..., env="MODEL_EMBEDDINGS")
+    embed_field: str = Field(..., env="EMBED_FIELD")
+    model_generate: str = Field(..., env="MODEL_GENERATE")
+    max_chunks: int = Field(..., env="MAX_CHUNKS")
+    model_score: float = Field(..., env="MODEL_SCORE")
+    model_hnsw: int = Field(..., env="MODEL_HNSW")
+    base_url: str = Field(..., env="BASE_URL")
 
-    # Vector Database Configuration
-    QDRANT_HOST: str = Field(..., env="DB_HOST")
-    QDRANT_PORT: int = Field(..., env="DB_PORT")
-    QDRANT_TIMEOUT: int = Field(..., env="DB_TIMEOUT")
-    COLLECTION_NAME: str = Field(..., env="COLLECTION_NAME")
-    VECTOR_DIMENSION: int = Field(..., env="VECTOR_DIMENSION")
-    QDRANT_INDEX_FIELD: str = Field(..., env="INDEX_FIELD") # text
+    # Qdrant
+    db_version: str = Field(..., env="DB_VERSION")
+    db_host: str = Field(..., env="DB_HOST")
+    db_port: int = Field(..., env="DB_PORT")
+    db_volume: str = Field(..., env="DB_VOLUME")
+    db_timeout: int = Field(..., env="DB_TIMEOUT")
+    collection_name: str = Field(..., env="COLLECTION_NAME")
+    vector_dimension: int = Field(..., env="VECTOR_DIMENSION")
+    index_field: str = Field(..., env="INDEX_FIELD")
 
-    # Redis Configuration
-    REDIS_HOST: str = Field(..., env="REDIS_HOST")
-    REDIS_PORT: int = Field(..., env="REDIS_PORT")
-    REDIS_DB: int = Field(..., env="REDIS_DB")
-    REDIS_RETRY: bool = Field(..., env="REDIS_RETRY")
-    REDIS_HEALTH_CHECK_INTERVAL: int = Field(..., env="REDIS_HEALTH_CHECK_INTERVAL")
-    REDIS_QUEUE: str = Field(..., env="REDIS_QUEUE") 
-    REDIS_QUEUE_FILES: str = Field(..., env="REDIS_QUEUE_FILES")
-    REDIS_QUEUE_DOCUMENTS: str = Field(..., env="REDIS_QUEUE_DOCUMENTS")
-    REDIS_QUEUE_PAGES: str = Field(..., env="REDIS_QUEUE_PAGES")
-    REDIS_QUEUE_SCOUT: str = Field(..., env="REDIS_QUEUE_SCOUT")
-    REDIS_QUEUE_SPIED: str = Field(..., env="REDIS_QUEUE_SPIED")
-    REDIS_CONTENT_FIELD: str = Field(..., env="REDIS_CONTENT_FIELD")
-    REDIS_CONTENT_TYPE: str = Field(..., env="REDIS_CONTENT_TYPE")
-    REDIS_CONTENT_MIME: str = Field(..., env="REDIS_CONTENT_MIME")
+    # Redis
+    redis_host: str = Field(..., env="REDIS_HOST")
+    redis_port: int = Field(..., env="REDIS_PORT")
+    redis_db: int = Field(..., env="REDIS_DB")
+    redis_timeout: int = Field(..., env="REDIS_TIMEOUT")
+    redis_retry: bool = Field(..., env="REDIS_RETRY")
+    redis_retry_delay: int = Field(..., env="REDIS_RETRY_DELAY")
+    redis_health_check_interval: int = Field(..., env="REDIS_HEALTH_CHECK_INTERVAL")
+    redis_queue: str = Field(..., env="REDIS_QUEUE")
+    redis_queue_files: str = Field(..., env="REDIS_QUEUE_FILES")
+    redis_queue_documents: str = Field(..., env="REDIS_QUEUE_DOCUMENTS")
+    redis_queue_pages: str = Field(..., env="REDIS_QUEUE_PAGES")
+    redis_queue_scout: str = Field(..., env="REDIS_QUEUE_SCOUT")
+    redis_queue_spied: str = Field(..., env="REDIS_QUEUE_SPIED")
+    redis_content_field: str = Field(..., env="REDIS_CONTENT_FIELD")
+    redis_content_type: str = Field(..., env="REDIS_CONTENT_TYPE")
+    redis_content_mime: str = Field(..., env="REDIS_CONTENT_MIME")
+
+    # Oracle
+    node_image: str = Field(..., env="NODE_IMAGE")
+    nginx_image: str = Field(..., env="NGINX_IMAGE")
+    oracle_port_in: int = Field(..., env="ORACLE_PORT_IN")
+    oracle_port_out: int = Field(..., env="ORACLE_PORT_OUT")
 
     # General
-    ENCODING: str = Field(..., env="ENCODING")
-    CHECK_INTERVAL: int = Field(..., env="CHECK_INTERVAL")
-    MAX_CHUNKS: int = Field(..., env="MAX_CHUNKS")
+    encoding: str = Field(..., env="ENCODING")
+    async_timeout: int = Field(..., env="ASYNC_TIMEOUT")
 
-    # Timeout Configuration
-    REDIS_TIMEOUT: int = Field(..., env="REDIS_TIMEOUT")
-    #API_TIMEOUT: int = Field(..., env="API_TIMEOUT") # in api_settings
-    ASYNC_TIMEOUT: int = Field(..., env="ASYNC_TIMEOUT")
-
-    class Config:
-        env_file = ".env"
-        case_sensitive = True
-        extra = "allow"  # Allow extra fields from environment variables
+    model_config = SettingsConfigDict(
+        env_file = Path(__file__).resolve().parents[1] / ".env",
+        case_sensitive=False,
+        extra="allow"
+    )
 
 # self initialize
-settings = Settings()
+settings = ApplicationSettings()

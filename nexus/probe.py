@@ -1,12 +1,12 @@
 import asyncio
 import base64
 import structlog
-from langchain_ollama import OllamaEmbeddings
 import traceback
-from pylon import settings, output_messages, RedisGateway, QdrantGateway
+from pylon import settings, output_messages, RedisGateway, QdrantGateway, OllamaGateway
 from nexus_settings import embedder_settings
 
 logger = structlog.get_logger()
+ollama_gateway = OllamaGateway()
 redis_gateway = RedisGateway()
 qdrant = QdrantGateway()
 qdrant.recreate_collection()
@@ -17,7 +17,7 @@ async def look_for_pages_messages():
     logger.warn(f"{output_messages.EMBEDDER_WAIT_START}")
     while True:
             try:
-                pages_message = await redis_gateway.get_message(settings.REDIS_QUEUE_PAGES)
+                pages_message = await redis_gateway.get_message(settings.redis_queue_pages)
                 if not pages_message:
                     continue
                 
@@ -27,13 +27,11 @@ async def look_for_pages_messages():
                     continue
                 
                 # decode documents
-                base64_content = decoded_pages.get(embedder_settings.REDIS_CONTENT_FIELD)
+                base64_content = decoded_pages.get(settings.redis_content_field)
                 pages = base64.b64decode(base64_content)
                 document_page = [page.page_content for page in pages if page.page_content.strip()] 
 
-                # Initialize Embedder
-                embedder = OllamaEmbeddings(model=settings.AI_MODEL, base_url=settings.AI_BASE_URL)
-                vectors = embedder.embed_documents(document_page)
+                vectors = OllamaGateway.get_vectors(documents=document_page)
 
                 # Prepare points for qdrant
                 points = qdrant.generate_points(vectors, document_page)
@@ -44,7 +42,7 @@ async def look_for_pages_messages():
                 logger.error(f"{output_messages.EMBEDDER_EXCEPTION}", error=str(e))
                 traceback.print_exc()
 
-            await asyncio.sleep(embedder_settings.CHECK_INTERVAL)
+            await asyncio.sleep(embedder_settings.check_interval)
 
 if __name__ == "__main__":
     try:

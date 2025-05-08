@@ -13,13 +13,16 @@ ENV PYTHONPATH=/carrier
 
 # Copy the required project files - might be possible to replace /carrier by .
 COPY pylon/ /carrier/pylon
-COPY nexus/ /carrier/nexus
+COPY robotics_bay/ /carrier/robotics_bay
 COPY .env /carrier/.env
 
-RUN pip install --no-cache-dir -r /carrier/nexus/requirements.txt
+RUN pip install --no-cache-dir -r /carrier/robotics_bay/requirements.txt
 
-# Launch a probe unit
-CMD ["python", "./nexus/probe.py"]
+# Expose FastAPI port (optional but good practice)
+EXPOSE 8000
+
+# Run the API
+CMD ["uvicorn", "robotics_bay.disruptor:app", "--host", "0.0.0.0", "--port", "8000"]
 
 # for debuging 
-#CMD ["sh", "-c", "python ./nexus/probe.py || sleep infinity"]
+#CMD ["sh", "-c", "python ./robotics-bay/disruptor.py || sleep infinity"]

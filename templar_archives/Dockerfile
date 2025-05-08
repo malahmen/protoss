@@ -9,7 +9,7 @@ WORKDIR /carrier
 ENV DB_HOST="${DB_HOST:-localhost}"
 ENV DB_PORT="${DB_PORT:-6333}"
 
-# Optional: mount stasis-ward folder for Qdrant's data storage
+# Optional: mount stasis_ward folder for Qdrant's data storage
 VOLUME ["${DB_VOLUME}"]
 
 # Expose the Qdrant port dynamically from QDRANT_PORT

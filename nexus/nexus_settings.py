@@ -1,18 +1,14 @@
-from pydantic_settings import BaseSettings
+from pydantic_settings import BaseSettings, SettingsConfigDict
 from pydantic import Field
+from pathlib import Path
 
 class EmbedderSettings(BaseSettings):
-    CHECK_INTERVAL: int = Field(..., env="CHECK_INTERVAL")
-    REDIS_CONTENT_FIELD: str = Field(..., env="REDIS_CONTENT_FIELD")
-    REDIS_CONTENT_TYPE: str = Field(..., env="REDIS_CONTENT_TYPE")
-    REDIS_CONTENT_MIME: str = Field(..., env="REDIS_CONTENT_MIME")
-    
-    #LOG_LEVEL: str = Field(..., env="LOG_LEVEL")
-    #LOG_FORMAT: str = Field(..., env="LOG_FORMAT")
+    check_interval: int = Field(..., env="CHECK_INTERVAL")
 
-    class Config:
-        env_file = ".env"
-        case_sensitive = True
-        extra = "allow"  # Allow extra fields from environment variables
+    model_config = SettingsConfigDict(
+        env_file = Path(__file__).resolve().parent / ".env",
+        case_sensitive = False,
+        extra = "allow"
+    )
 
 embedder_settings = EmbedderSettings()

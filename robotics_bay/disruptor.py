@@ -10,7 +10,7 @@ import structlog
 from typing import List
 from datetime import datetime
 import time
-from robotics_bay_settings import api_settings
+from robotics_bay.robotics_bay_settings import api_settings
 from pylon import settings, QdrantGateway, output_messages
 
 
@@ -23,7 +23,7 @@ limiter = Limiter(key_func=get_remote_address)
 # Add to Pydantic models
 class QARequest(BaseModel):
     question: str = Field(..., min_length=1, max_length=1000)
-    collection: str = Field(default=settings.COLLECTION_NAME)
+    collection: str = Field(default=settings.collection_name)
     max_context_chunks: int = Field(default=5, ge=1, le=20)
     strict_context: bool = Field(default=True)
 
@@ -35,7 +35,7 @@ class QAResponse(BaseModel):
 
 class ChatRequest(BaseModel):
     query: str = Field(..., min_length=1, max_length=1000)
-    collections: List[str] = Field(default=[settings.COLLECTION_NAME])
+    collections: List[str] = Field(default=[settings.collection_name])
 
 class HealthResponse(BaseModel):
     status: str
@@ -45,16 +45,16 @@ class HealthResponse(BaseModel):
 
 # Initialize FastAPI with middleware
 app = FastAPI(
-    title=api_settings.API_TITLE,
-    description=api_settings.API_DESCRIPTION,
-    version=api_settings.API_VERSION,
+    title=api_settings.api_title,
+    description=api_settings.api_description,
+    version=api_settings.api_version,
     middleware=[
         Middleware(
             CORSMiddleware,
-            allow_origins=[api_settings.ALLOW_ORIGINS],
-            allow_credentials=api_settings.ALLOW_CREDENTIALS,
-            allow_methods=[api_settings.ALLOW_METHODS],
-            allow_headers=[api_settings.ALLOW_HEADERS],
+            allow_origins=[api_settings.allow_origins],
+            allow_credentials=api_settings.allow_credentials,
+            allow_methods=[api_settings.allow_methods],
+            allow_headers=[api_settings.allow_headers],
         )
     ]
 )
@@ -92,14 +92,14 @@ async def health_check(request: Request):
         qdrant_health = qdrant.health_check()
         
         # Check Ollama connection
-        async with httpx.AsyncClient(timeout=api_settings.API_TIMEOUT) as client:
-            ollama_health = await client.get(f"{settings.AI_MODEL_API}{settings.AI_MODEL_HEALTH}")
+        async with httpx.AsyncClient(timeout=api_settings.api_timeout) as client:
+            ollama_health = await client.get(f"{settings.model_api}{settings.model_health}")
             ollama_health.raise_for_status()
         
         return HealthResponse(
             status=output_messages.API_HEALTHY,
             timestamp=datetime.utcnow(),
-            version=api_settings.API_VERSION,
+            version=api_settings.api_version,
             services={
                 "qdrant": output_messages.API_HEALTHY if qdrant_health else output_messages.API_UNHEALTHY,
                 "ollama": output_messages.API_HEALTHY if ollama_health.status_code == 200 else output_messages.API_UNHEALTHY
@@ -128,7 +128,7 @@ async def ask_question(request: Request,
         return QAResponse(
             answer=answer,
             context_chunks=context_chunks,
-            model=settings.AI_MODEL,
+            model=settings.model_name,
             timestamp=datetime.utcnow()
         )
 
@@ -145,7 +145,7 @@ async def get_context_chunks(question: str, collections: list[str]) -> List[str]
 
         for collection in collections:
             results = qdrant.search( query_vector=query_vector, collection_name=collection)
-            all_matches.extend([hit.payload[settings.QDRANT_INDEX_FIELD] for hit in results if settings.QDRANT_INDEX_FIELD in hit.payload])
+            all_matches.extend([hit.payload[settings.index_field] for hit in results if settings.index_field in hit.payload])
         
         return all_matches
     except Exception as e:
@@ -157,7 +157,7 @@ def build_augmented_prompt(question: str, context_chunks: List[str], strict: boo
     context = "\n\n".join(context_chunks)
     
     prompt = f"""
-{api_settings.PROMPT_RULES}
+{api_settings.prompt_rules}
 
 Context:
 {context}
@@ -173,17 +173,17 @@ Answer:"""
 async def get_response(prompt: str) -> str:
     """Get LLM response with error handling"""
     try:
-        async with httpx.AsyncClient(timeout=api_settings.API_TIMEOUT) as client:
+        async with httpx.AsyncClient(timeout=api_settings.api_timeout) as client:
             response = await client.post(
-                f"{settings.AI_MODEL_API}{settings.AI_MODEL_GENERATE}",
+                f"{settings.model_api}{settings.model_generate}",
                 json={
-                    "model": settings.AI_MODEL,
+                    "model": settings.model_name,
                     "prompt": prompt,
                     "stream": False
                 }
             )
             response.raise_for_status()
-            return response.json().get(api_settings.PROMPT_RESPONSE_FIELD, output_messages.API_PROMPT_EMPTY_MSG)
+            return response.json().get(api_settings.prompt_response_field, output_messages.API_PROMPT_EMPTY_MSG)
             
     except Exception as e:
         logger.error(output_messages.API_PROMPT_EXCEPTION, error=str(e))
@@ -196,22 +196,22 @@ def generate_embeddings(texts: list[str]) -> list[list[float]]:
     logger.info(
         output_messages.API_EMBEDDINGS_START,
         total_texts=total_texts,
-        model=settings.AI_MODEL
+        model=settings.model_name
     )
 
     for idx, text in enumerate(texts):
         try:
             logger.debug(f"{output_messages.API_EMBEDDINGS_STARTED}", index=idx, text_preview=text[:100])
 
-            response = requests.post(f"{settings.AI_MODEL_API}{settings.AI_MODEL_EMBEDDINGS}", json={
-                "model": settings.AI_MODEL,
+            response = requests.post(f"{settings.model_api}{settings.model_embeddings}", json={
+                "model": settings.model_name,
                 "prompt": text
             })
             response.raise_for_status()
             data = response.json()
 
-            if settings.AI_EMBED_FIELD in data:
-                embedding = data[settings.AI_EMBED_FIELD]
+            if settings.embed_field in data:
+                embedding = data[settings.embed_field]
                 embeddings.append(embedding)
                 status = output_messages.API_SUCCESS
                 logger.debug(f"{output_messages.API_EMBEDDINGS_OK}", index=idx, embedding_length=len(embedding))
@@ -219,7 +219,7 @@ def generate_embeddings(texts: list[str]) -> list[list[float]]:
                 # Fallback if embedding isn't returned (simulate or log)
                 #embedding = np.random.rand(settings.VECTOR_DIMENSION).tolist()
                 #status = output_messages.API_FALLBACK
-                logger.warning(f"{output_messages.API_EMBEDDINGS_MISS} {settings.AI_EMBED_FIELD} ", index=idx, text_preview=text[:100])
+                logger.warning(f"{output_messages.API_EMBEDDINGS_MISS} {settings.embed_field} ", index=idx, text_preview=text[:100])
 
             # Calculate progress
             progress = (idx + 1) / total_texts * 100

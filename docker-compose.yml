@@ -4,12 +4,12 @@ services:
     networks:
       - mothership-core
     build:
-      context: ./fleet-beacon
+      context: ./fleet_beacon
       args:
         MODEL_NAME: ${MODEL_NAME}
     env_file:
       - ./.env
-      - ./fleet-beacon/.env
+      - ./fleet_beacon/.env
     ports:
       - "${OLLAMA_PORT}:${OLLAMA_PORT}"
     volumes:
@@ -24,11 +24,11 @@ services:
       - mothership-core
     env_file:
       - ./.env
-      - ./templar-archives/.env
+      - ./templar_archives/.env
     ports:
       - "${DB_PORT}:${DB_PORT}"
     volumes:
-      - ./templar-archives/stasis-ward:${DB_VOLUME:-/stasis-ward}
+      - ./templar_archives/stasis_ward:${DB_VOLUME:-/stasis_ward}
     restart: unless-stopped
   tempest:
     container_name: tempest
@@ -39,7 +39,7 @@ services:
       - ./.env
       - ./assimilator/.env
     ports:
-      - "${REDIS_PORT_IN}:${REDIS_PORT_OUT}"
+      - "${REDIS_PORT}:${REDIS_PORT}"
     volumes:
       - ./assimilator/redis.conf:/usr/local/etc/redis/redis.conf
     depends_on:
@@ -51,114 +51,142 @@ services:
     container_name: sentry
     networks:
       - mothership-core
-    build: ./cybernetics-core
+    build:
+      context: .
+      dockerfile: cybernetics_core/Dockerfile
     env_file:
-      - ./.env
-      - ./cybernetics-core/.env
+      - .env
+      - cybernetics_core/.env
     volumes:
-      - ./stargate:/stargate
+      - ./.env:/carrier/.env:ro
+      - ./cybernetics_core:/carrier/cybernetics_core:rw
       - ./pylon:/carrier/pylon
+      - ./stargate:/stargate
+      - ./stargate/warp_gate:/stargate/warp_gate
+    working_dir: /carrier
     depends_on:
       - tempest
+    mem_limit: 1g
     restart: unless-stopped
   zealot:
     container_name: zealot
     networks:
       - mothership-core
-    build: ./gateway
+    build:
+      context: .
+      dockerfile: gateway/Dockerfile
     env_file:
       - ./.env
       - ./gateway/.env
     volumes:
+      - ./.env:/carrier/.env:ro
+      - ./gateway:/carrier/gateway:rw
       - ./pylon:/carrier/pylon
     depends_on:
       - tempest
+    mem_limit: 1g
     restart: unless-stopped
   stalker:
     container_name: stalker
     networks:
       - mothership-core
-    build: ./twilight-council
+    build:
+      context: .
+      dockerfile: twilight_council/Dockerfile
     env_file:
       - ./.env
-      - ./twilight-council/.env
+      - ./twilight_council/.env
     volumes:
+      - ./.env:/carrier/.env:ro
+      - ./twilight_council:/carrier/twilight_council:rw
       - ./pylon:/carrier/pylon
     depends_on:
       - tempest
+    mem_limit: 1g
     restart: unless-stopped
   probe:
     container_name: probe
     networks:
       - mothership-core
-    build: ./nexus
+    build:
+      context: .
+      dockerfile: nexus/Dockerfile
     env_file:
       - ./.env
       - ./nexus/.env
     volumes:
+      - ./.env:/carrier/.env:ro
+      - ./nexus:/carrier/nexus:rw
       - ./pylon:/carrier/pylon
+      - ./stargate:/stargate
     depends_on:
       - tempest
       - mothership
       - high-templar
+    mem_limit: 1g
     restart: unless-stopped
   disruptor:
     container_name: disruptor
     networks:
       - mothership-core
-    build: ./robotics-bay
+    build:
+      context: .
+      dockerfile: robotics_bay/Dockerfile
     env_file:
       - ./.env
-      - ./robotics-bay/.env
+      - ./robotics_bay/.env
     volumes:
+      - ./.env:/carrier/.env:ro
+      - ./robotics_bay:/carrier/robotics_bay:rw
       - ./pylon:/carrier/pylon
     depends_on:
       - tempest
       - high-templar
+    mem_limit: 1g
     restart: unless-stopped
   oracle:
     container_name: oracle
     networks:
       - mothership-core
     build:
-      context: ./stasis-ward
+      context: ./stasis_ward
       args:
         NODE_IMAGE: ${NODE_IMAGE}
         NGINX_IMAGE: ${NGINX_IMAGE}
     env_file:
       - ./.env
-      - ./stasis-ward/.env
+      - ./stasis_ward/.env
     ports:
       - "${ORACLE_PORT_IN}:${ORACLE_PORT_OUT}"
     depends_on:
       - disruptor
-    restart: unless-stopped
+    restart: no #unless-stopped
   observer:
     container_name: observer
     networks:
       - mothership-core
-    build: ./robotics-facility-warps
+    build: ./robotics_facility_warps
     env_file:
       - ./.env
-      - ./robotics-facility-warps/.env
+      - ./robotics_facility_warps/.env
     volumes:
       - ./pylon:/carrier/pylon
     depends_on:
       - tempest
-    restart: unless-stopped
+    restart: no #unless-stopped
   dark-templar:
     container_name: dark-templar
     networks:
       - mothership-core
-    build: ./dark-shrine
+    build: ./dark_shrine
     env_file:
       - ./.env
-      - ./dark-shrine/.env
+      - ./dark_shrine/.env
     volumes:
       - ./pylon:/carrier/pylon
     depends_on:
       - tempest
-    restart: unless-stopped
+    restart: no #unless-stopped
 
 networks:
   mothership-core:

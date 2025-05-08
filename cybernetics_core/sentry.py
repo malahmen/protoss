@@ -10,7 +10,7 @@ from cybernetic_core_settings import watcher_settings
 
 logger = structlog.get_logger()
 mime = magic.Magic(mime=True)
-timeout = aiohttp.ClientTimeout(total=settings.ASYNC_TIMEOUT) # 90 seconds
+timeout = aiohttp.ClientTimeout(total=settings.async_timeout) # 90 seconds
 seen_files = set()
 redis_gateway = RedisGateway()
 
@@ -18,7 +18,9 @@ def is_supported(filename):
     return any(filename.lower().endswith(ext) for ext in watcher_settings.supported_extensions)
 
 def get_current_files():
-    return {f for f in os.listdir(watcher_settings.WATCH_FOLDER) if is_supported(f)}
+    if not os.path.exists(watcher_settings.watch_folder):
+        raise RuntimeError(f"{output_messages.WATCHER_NO_FOLDER_KO}: {watcher_settings.watch_folder}")
+    return {f for f in os.listdir(watcher_settings.watch_folder) if is_supported(f)}
 
 async def send_files(session, filepath):
     """Asynchronous file ingestion."""
@@ -28,12 +30,12 @@ async def send_files(session, filepath):
     with open(filepath, 'rb') as f:
         file_content = f.read()
         content_mipe = mime.from_buffer(file_content)
-        encoded_content = base64.b64encode(file_content).decode(settings.ENCODING)
+        encoded_content = base64.b64encode(file_content).decode(settings.encoding)
 
         payload = redis_gateway.generate_message(encoded_content=encoded_content,filename=filename, content_mime=content_mipe)
-        await redis_gateway.send_message(payload, settings.REDIS_QUEUE_FILES)
+        await redis_gateway.send_message(payload, settings.redis_queue_files)
 
-        processed_dir = os.path.join(watcher_settings.WATCH_FOLDER, watcher_settings.PROCESSED_FOLDER)
+        processed_dir = os.path.join(watcher_settings.watch_folder, watcher_settings.processed_folder)
         logger.warn(f"{output_messages.WATCHER_MOVE_FILE_START}", directory=processed_dir)
         
         os.makedirs(processed_dir, exist_ok=True)
@@ -50,7 +52,7 @@ async def look_for_files():
 
                 tasks = []
                 for filename in new_files | modified_files:
-                    full_path = os.path.join(watcher_settings.WATCH_FOLDER, filename)
+                    full_path = os.path.join(watcher_settings.watch_folder, filename)
                     tasks.append(send_files(session, full_path))
 
                 # Wait for all tasks to complete
@@ -62,7 +64,7 @@ async def look_for_files():
                 logger.error(f"{output_messages.WATCHER_EXCEPTION}", error=str(e))
                 traceback.print_exc()
 
-            await asyncio.sleep(watcher_settings.CHECK_INTERVAL)
+            await asyncio.sleep(watcher_settings.check_interval)
 
 if __name__ == "__main__":
     try:

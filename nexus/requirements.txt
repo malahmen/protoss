@@ -1,0 +1,11 @@
+aiohttp>=3.9.1                    # colossus
+python-magic 
+structlog>=23.2.0                 # all?
+pydantic>=2.4.2                   # settings
+pydantic-settings>=2.1.0          # settings
+langchain-ollama>=0.1.0           # New official Ollama integration - mothership_core
+langchain-community>=0.2.1        # For updated imports - mothership_core
+langchain-experimental>=0.0.49    # Required for SemanticChunker - mothership_core
+prometheus-client>=0.17.1         # phoenix
+qdrant-client>=1.8.3              # warp-prism 
+redis>=4.6.0                      # colossus

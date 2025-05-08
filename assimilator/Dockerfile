@@ -6,8 +6,7 @@ FROM ${REDIS_VERSION}
 WORKDIR /carrier
 
 # Expose the required ports for Redis communication
-EXPOSE ${REDIS_PORT_IN}
-EXPOSE ${REDIS_PORT_OUT}
+EXPOSE ${REDIS_PORT}
 
 # Default command to run Redis server
-CMD ["redis-server"]
+CMD ["redis-server", "/usr/local/etc/redis/redis.conf"]

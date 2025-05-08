@@ -2,7 +2,7 @@ from pydantic_settings import BaseSettings, SettingsConfigDict
 from pydantic import Field
 from pathlib import Path
 
-class ExtractorSettings(BaseSettings):
+class ChunkerSettings(BaseSettings):
     check_interval: int = Field(..., env="CHECK_INTERVAL")
 
     model_config = SettingsConfigDict(
@@ -11,4 +11,4 @@ class ExtractorSettings(BaseSettings):
         extra = "allow"
     )
 
-extractor_settings = ExtractorSettings()
+chunker_settings = ChunkerSettings()

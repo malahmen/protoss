@@ -23,6 +23,7 @@ class OutputMessages():
     WATCHER_KO = "[Zealot] Destroyed."
     WATCHER_READ_FILE_START = "[Sentry] Reading file"
     WATCHER_MOVE_FILE_START = "[Sentry] Sending processed file into directory"
+    WATCHER_NO_FOLDER_KO = "[Sentry] Target folder not found"
     # extractor - zealot.py
     EXTRACTOR_INITIALIZATION = "[Zealot] Ready to serve."
     EXTRACTOR_EXCEPTION = "[Zealot down] Exploded "
