@@ -29,4 +29,3 @@ RUN chmod +x ./entrypoint.sh
 
 # Set the custom entrypoint
 ENTRYPOINT ["./entrypoint.sh"]
-#CMD ["ollama", "serve --host '$OLLAMA_HOST' --port '$OLLAMA_PORT'"]

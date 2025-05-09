@@ -40,7 +40,7 @@ async def look_for_document_messages():
                 pages = ollama_gateway.split_into_chunks(documents=documents)
                 
                 # send pages to their redis queue
-                await redis_gateway.send_it(settings.redis_queue_pages, pages, redis_gateway.generate_message_id())
+                await redis_gateway.send_it(queue=settings.redis_queue_pages, content=pages, message_id=redis_gateway.generate_message_id())
 
             except Exception as e:
                 logger.error(f"{output_messages.CHUNKER_EXCEPTION}", error=str(e))
