@@ -7,6 +7,8 @@ services:
       context: ./fleet_beacon
       args:
         MODEL_NAME: ${MODEL_NAME}
+    environment:
+      - OLLAMA_HOST=${OLLAMA_HOST}
     env_file:
       - ./.env
       - ./fleet_beacon/.env
@@ -14,7 +16,7 @@ services:
       - "${OLLAMA_PORT}:${OLLAMA_PORT}"
     volumes:
       - ./stargate:/stargate
-    mem_limit: 4g
+    mem_limit: 8g
     memswap_limit: 8g 
     restart: unless-stopped
   high-templar:
@@ -29,6 +31,7 @@ services:
       - "${DB_PORT}:${DB_PORT}"
     volumes:
       - ./templar_archives/stasis_ward:${DB_VOLUME:-/stasis_ward}
+    mem_limit: 2g
     restart: unless-stopped
   tempest:
     container_name: tempest
@@ -43,7 +46,7 @@ services:
     volumes:
       - ./assimilator/redis.conf:/usr/local/etc/redis/redis.conf
     depends_on:
-      - mothership
+      - mothership # check conditions and health checks
       - high-templar
     mem_limit: 2g
     restart: unless-stopped
@@ -160,6 +163,7 @@ services:
       - "${ORACLE_PORT_IN}:${ORACLE_PORT_OUT}"
     depends_on:
       - disruptor
+    mem_limit: 1g
     restart: no #unless-stopped
   observer:
     container_name: observer
@@ -173,6 +177,7 @@ services:
       - ./pylon:/carrier/pylon
     depends_on:
       - tempest
+    mem_limit: 1g
     restart: no #unless-stopped
   dark-templar:
     container_name: dark-templar
@@ -186,6 +191,7 @@ services:
       - ./pylon:/carrier/pylon
     depends_on:
       - tempest
+    mem_limit: 1g
     restart: no #unless-stopped
 
 networks:

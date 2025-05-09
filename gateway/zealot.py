@@ -13,16 +13,19 @@ from typing import Dict, Any
 import traceback
 from langchain_community.document_loaders import PDFPlumberLoader
 from pathlib import Path
-
+import warnings
+import logging
 
 logger = structlog.get_logger()
 mime = magic.Magic(mime=True)
 timeout = aiohttp.ClientTimeout(total=settings.async_timeout)
 seen_files = set()
 redis_gateway = RedisGateway()
+logging.getLogger("pdfminer").setLevel(logging.ERROR)
 
 def extract_documents(file_bytes: bytes, filename: str) -> str:
     ext = Path(filename).suffix.lower()
+    temporary_file_path = None
 
     if ext == ".pdf":
         try:
@@ -30,10 +33,12 @@ def extract_documents(file_bytes: bytes, filename: str) -> str:
             with tempfile.NamedTemporaryFile(suffix=".pdf", delete=False) as temporary_file:
                 temporary_file.write(file_bytes)
                 temporary_file_path = temporary_file.name
-            with suppress_stderr():
+            with warnings.catch_warnings():
+                warnings.simplefilter("ignore")
                 loader = PDFPlumberLoader(temporary_file_path)
                 documents = loader.load()
-            os.unlink(temporary_file_path)
+            if temporary_file_path:
+                os.unlink(temporary_file_path)
             return documents
         except Exception as e:
             logger.error(f"{output_messages.EXTRACTOR_PDF_KO}", error=str(e), filename=filename)

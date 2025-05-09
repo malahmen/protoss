@@ -5,7 +5,8 @@ import structlog
 from pylon import settings, RedisGateway, OllamaGateway, output_messages
 from twilight_council_settings import chunker_settings
 import traceback
-
+import json
+from langchain_core.documents import Document
 
 logger = structlog.get_logger()
 redis_gateway = RedisGateway()
@@ -26,8 +27,14 @@ async def look_for_document_messages():
                     continue
                 
                 # decode documents
-                base64_content = decoded_documents.get("content")
-                documents = base64.b64decode(base64_content)
+                base64_content = decoded_documents.get(settings.redis_content_field)
+                decoded_json = base64.b64decode(base64_content).decode(settings.encoding)
+                document_dicts = json.loads(decoded_json)
+
+                documents = [
+                    Document(**d) if isinstance(d, dict) else Document(page_content=str(d))
+                    for d in document_dicts
+                ]
 
                 # split the data into chunks (documents into pages)
                 pages = ollama_gateway.split_into_chunks(documents=documents)
@@ -36,7 +43,7 @@ async def look_for_document_messages():
                 await redis_gateway.send_it(settings.redis_queue_pages, pages, redis_gateway.generate_message_id())
 
             except Exception as e:
-                logger.error(f"{output_messages.EXTRACTOR_EXCEPTION}", error=str(e))
+                logger.error(f"{output_messages.CHUNKER_EXCEPTION}", error=str(e))
                 traceback.print_exc()
 
             await asyncio.sleep(chunker_settings.check_interval)

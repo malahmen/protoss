@@ -5,6 +5,7 @@ import magic
 import traceback
 import structlog
 import os
+import shutil
 from pylon import settings, RedisGateway, output_messages
 from cybernetic_core_settings import watcher_settings
 
@@ -29,17 +30,26 @@ async def send_files(session, filepath):
     
     with open(filepath, 'rb') as f:
         file_content = f.read()
-        content_mipe = mime.from_buffer(file_content)
+        content_mime = mime.from_buffer(file_content)
         encoded_content = base64.b64encode(file_content).decode(settings.encoding)
 
-        payload = redis_gateway.generate_message(encoded_content=encoded_content,filename=filename, content_mime=content_mipe)
+        payload = redis_gateway.generate_message(
+            id=None,
+            encoded_content=encoded_content,
+            filename=filename,
+            content_field=None,
+            content_type=None,
+            content_mime=content_mime
+        )
+
+        logger.info("[Sentry] Target queue name ", queue=settings.redis_queue_files)
         await redis_gateway.send_message(payload, settings.redis_queue_files)
 
-        processed_dir = os.path.join(watcher_settings.watch_folder, watcher_settings.processed_folder)
+        processed_dir = os.path.join(watcher_settings.watch_folder, watcher_settings.processed_folder.lstrip("/"))
         logger.warn(f"{output_messages.WATCHER_MOVE_FILE_START}", directory=processed_dir)
         
         os.makedirs(processed_dir, exist_ok=True)
-        os.rename(filepath, os.path.join(processed_dir, filename))
+        shutil.move(filepath, os.path.join(processed_dir, filename))
 
 async def look_for_files():
     await asyncio.sleep(10)

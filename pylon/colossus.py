@@ -28,11 +28,20 @@ class RedisGateway():
 
     async def send_it(self, queue, content, message_id):
         if content:
-            encoded_content = base64.b64encode(content).decode(settings.encoding)
-            payload=self.generate_message(id=message_id, encoded_content=encoded_content)
+            if isinstance(content, list):
+                content = json.dumps([doc.dict() if hasattr(doc, "dict") else str(doc) for doc in content])
+            encoded_content = base64.b64encode(content.encode(settings.encoding)).decode(settings.encoding)
+            payload = self.generate_message(
+                id=message_id,
+                encoded_content=encoded_content,
+                filename=None,
+                content_field=None,
+                content_type=None,
+                content_mime=None
+            )
             await self.send_message(payload, queue)
 
-    def generate_message_id():
+    def generate_message_id(self):
         return str(uuid.uuid4())
 
     async def send_message(self, data, queue):
@@ -41,8 +50,11 @@ class RedisGateway():
                 queue = settings.redis_queue
             redis = await self.get_redis_connection()
 
-            await redis.rpush(queue, json.dumps(data))
-            self._logger.info(output_messages.REDIS_MESSAGE_OUT_OK, message_id=data['id'])
+            result = await redis.rpush(queue, json.dumps(data))
+            if not result or result == 0:
+                self._logger.error(output_messages.REDIS_MESSAGE_OUT_KO, result=result)
+            else:     
+                self._logger.info(output_messages.REDIS_MESSAGE_OUT_OK, message_id=data['id'], queue=queue, result=result)
             await redis.aclose()
         except Exception as e:
             self._logger.error(output_messages.REDIS_MESSAGE_OUT_KO, error=str(e))
@@ -56,8 +68,15 @@ class RedisGateway():
 
             message = await redis_connection.blpop(queue, timeout=settings.redis_timeout)
 
-            if not message or not isinstance(message, tuple):
-                self._logger.error(output_messages.REDIS_FAILED_TO_READ)
+            if not message:
+                self._logger.info(output_messages.REDIS_NO_MESSAGES)
+                return None
+
+            if message and not isinstance(message, tuple):
+                self._logger.error(output_messages.REDIS_FAILED_TO_READ, message=message)
+                return None
+
+            return message
         except (redis.exceptions.ConnectionError) as e:
             record_error(error_type='redis')
             self._logger.error(output_messages.REDIS_FAILED_TO_CONNECT, error=str(e))
@@ -112,6 +131,7 @@ class RedisGateway():
 
     def generate_message(self, id, encoded_content, filename, content_field, content_type, content_mime):
         if not encoded_content:
+            self._logger.error("[Colossus hit] No payload, skipping package ", filename=filename)
             return None
 
         message_id = id or self.generate_message_id()

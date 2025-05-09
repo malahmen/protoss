@@ -2,8 +2,8 @@
 set -e
 
 # Load env with defaults if not set
-OLLAMA_HOST="${OLLAMA_HOST:-localhost}"
-OLLAMA_PORT="${OLLAMA_PORT:-11434}"
+export OLLAMA_HOST="${OLLAMA_HOST:-0.0.0.0}"
+export OLLAMA_PORT="${OLLAMA_PORT:-11434}"
 
 # Start Ollama in the background
 echo "🚀 Aen'vaan kash'vor... Starting Ollama server"
