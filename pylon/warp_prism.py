@@ -1,12 +1,14 @@
-from pylon import settings
+from pylon import settings, output_messages
 from qdrant_client import QdrantClient
 from qdrant_client.models import PointStruct, VectorParams, Distance, PayloadSchemaType, SearchParams
 import uuid
+import structlog
 
 class QdrantGateway:
 
     def __init__(self):
         self._qdrant_client = None
+        self._logger = structlog.get_logger()
 
     def initialize_client(self):
         self._qdrant_client = QdrantClient(
@@ -34,6 +36,7 @@ class QdrantGateway:
                     distance=Distance.COSINE
                 )
             )
+            self._logger.info(f"{output_messages.QDRANT_COLLECTION_CREATION}", name=settings.collection_name)
 
     def create_payload_index(self, field_name="text", field_schema=PayloadSchemaType.TEXT):
         if self._qdrant_client:
@@ -42,6 +45,7 @@ class QdrantGateway:
                 field_name=field_name,
                 field_schema=field_schema
             )
+            self._logger.info(f"{output_messages.QDRANT_INXED_CREATION}", name=field_name)
 
     def search(self, query_vector, collection=settings.collection_name):
         results = self._qdrant_client.search(

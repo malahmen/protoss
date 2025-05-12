@@ -30,6 +30,7 @@ class RedisGateway():
         if content:
             if isinstance(content, list):
                 content = json.dumps([doc.dict() if hasattr(doc, "dict") else str(doc) for doc in content])
+                self._logger.info(f"[Colossus] Content transformed into standard document. ")
             encoded_content = base64.b64encode(content.encode(settings.encoding)).decode(settings.encoding)
             payload = self.generate_message(
                 id=message_id,
@@ -102,7 +103,8 @@ class RedisGateway():
         try:
             _, raw_data = message
             decoded_message = json.loads(raw_data)
-            self._logger.info(output_messages.REDIS_DECODED_OK, message=decoded_message)
+            #self._logger.info(output_messages.REDIS_DECODED_OK, message=decoded_message)
+            self._logger.info(output_messages.REDIS_DECODED_OK)
             return decoded_message
         except json.JSONDecodeError as e:
             record_error(error_type='invalid_json')

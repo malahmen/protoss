@@ -38,7 +38,8 @@ class OllamaGateway:
             warnings.simplefilter("ignore")
             pages = self._chunker.split_documents(documents)
         self._logger.info(f"{output_messages.CHUNKER_DONE}", chunks_count=len(pages))
-        
+        return pages
+            
     def get_vectors(self, documents):
         if not documents:
             return None

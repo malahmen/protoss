@@ -56,6 +56,9 @@ class OutputMessages():
     EMBEDDER_KO = "[Probe] Destroyed."
     EMBEDDER_WAIT_START = "[Probe] Wating for orders."
     EMBEDDER_POINTS_GENERATED="[Probe] Qdrant points generated."
+    # qdrant
+    QDRANT_COLLECTION_CREATION="[Warp Prism] Collection created. "
+    QDRANT_COLLECTION_CREATION="[Warp Prism] Index created. "
     # metrics - phoenix.py
     # api - disruptor.py
     API_HEALTHY="healthy"

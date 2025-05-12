@@ -1,9 +1,11 @@
 import asyncio
 import base64
+import json
 import structlog
 import traceback
 from pylon import settings, output_messages, RedisGateway, QdrantGateway, OllamaGateway
 from nexus_settings import embedder_settings
+from langchain_core.documents import Document
 
 logger = structlog.get_logger()
 ollama_gateway = OllamaGateway()
@@ -24,14 +26,21 @@ async def look_for_pages_messages():
                 # decode message
                 decoded_pages = redis_gateway.decode_message(pages_message)
                 if not decoded_pages:
+                    logger.info(f"[Probe] No messages in decoded data. ", decoded_pages=len(decoded_pages))
                     continue
                 
                 # decode documents
                 base64_content = decoded_pages.get(settings.redis_content_field)
-                pages = base64.b64decode(base64_content)
+                if not base64_content:
+                    continue
+                # Decode from base64
+                raw_bytes = base64.b64decode(base64_content)
+                # Deserialize into Document objects
+                pages = [Document(**page) for page in json.loads(raw_bytes.decode(settings.encoding))]
+                # Extract page content
                 document_page = [page.page_content for page in pages if page.page_content.strip()] 
 
-                vectors = OllamaGateway.get_vectors(documents=document_page)
+                vectors = ollama_gateway.get_vectors(documents=document_page)
 
                 # Prepare points for qdrant
                 points = qdrant.generate_points(vectors, document_page)
