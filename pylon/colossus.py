@@ -12,11 +12,13 @@ from pylon import settings, record_error, output_messages
 # redis client code
 class RedisGateway():
 
-    def __init__(self):
+    def __init__(self, connection):
         self._logger = structlog.get_logger()
+        self._connection = connection
 
-    async def get_redis_connection(self):
-        return await redis_async.Redis(
+    @classmethod
+    async def create(cls):
+        connection = await redis_async.Redis(
             host=settings.redis_host,
             port=settings.redis_port,
             db=settings.redis_db,
@@ -25,6 +27,10 @@ class RedisGateway():
             retry_on_timeout=bool(settings.redis_retry),
             health_check_interval=settings.redis_health_check_interval
         )
+        return cls(connection)
+
+    async def get_redis_connection(self):
+        return self._connection
 
     async def send_it(self, queue, content, message_id):
         if content:
@@ -49,7 +55,7 @@ class RedisGateway():
         try:
             if not queue:
                 queue = settings.redis_queue
-            redis = await self.get_redis_connection()
+            redis = self._connection
 
             result = await redis.rpush(queue, json.dumps(data))
             if not result or result == 0:
@@ -65,7 +71,7 @@ class RedisGateway():
         try:
             if not queue:
                 queue = settings.redis_queue
-            redis_connection = await self.get_redis_connection()
+            redis_connection = await self._connection
 
             message = await redis_connection.blpop(queue, timeout=settings.redis_timeout)
 
@@ -96,7 +102,7 @@ class RedisGateway():
     def get_queue_size(self, queue):
         if not queue:
             queue = settings.redis_queue
-        redis = self.get_redis_connection()
+        redis = self._connection
         return redis.llen(queue)
 
     def decode_message(self, message):
