@@ -12,6 +12,7 @@ class ApiSettings(BaseSettings):
     api_version: str = Field(..., env="API_VERSION")
     api_url: str = Field(..., env="API_URL")
     api_timeout: str = Field(..., env="API_TIMEOUT")
+    api_port: int = Field(..., env="API_PORT")
 
     prompt_rules: str = Field(..., env="PROMPT_RULES")
     prompt_response_field: str = Field(..., env="PROMPT_RESPONSE_FIELD") # "response"

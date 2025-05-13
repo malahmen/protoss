@@ -14,6 +14,7 @@ class ApplicationContext:
         qdrant = QdrantGateway()
         ollama = OllamaGateway()
 
+        qdrant.initialize_client()
         qdrant.recreate_collection()
         qdrant.create_payload_index()
 

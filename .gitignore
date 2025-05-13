@@ -8,3 +8,13 @@ pylon/__pycache__
 robotics-bay/__pycache__
 robotics-facility-warps/__pycache__
 twilight-council/__pycache__
+
+__pycache__/
+*.py[cod]
+*$py.class
+*/__pycache__
+stargate/*
+!stargate/information.md
+!stargate/warp_gate/
+stargate/warp_gate/*
+!stargate/warp_gate/information.md

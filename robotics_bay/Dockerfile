@@ -2,6 +2,10 @@
 ARG PYTHON_VERSION=python:3.11-slim
 FROM ${PYTHON_VERSION}
 
+# Set API port argument and environment variable
+ARG API_PORT=8000
+ENV API_PORT=${API_PORT}
+
 # Set working directory
 WORKDIR /carrier
 
@@ -19,10 +23,10 @@ COPY .env /carrier/.env
 RUN pip install --no-cache-dir -r /carrier/robotics_bay/requirements.txt
 
 # Expose FastAPI port (optional but good practice)
-EXPOSE 8000
+EXPOSE ${API_PORT}
 
 # Run the API
-CMD ["uvicorn", "robotics_bay.disruptor:app", "--host", "0.0.0.0", "--port", "8000"]
+CMD ["sh", "-c", "uvicorn robotics_bay.disruptor:app --host 0.0.0.0 --port ${API_PORT}"]
 
 # for debuging 
 #CMD ["sh", "-c", "python ./robotics-bay/disruptor.py || sleep infinity"]

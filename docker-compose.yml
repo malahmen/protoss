@@ -135,9 +135,13 @@ services:
     build:
       context: .
       dockerfile: robotics_bay/Dockerfile
+      args:
+        API_PORT: ${API_PORT}
     env_file:
       - ./.env
       - ./robotics_bay/.env
+    ports:
+      - "${API_PORT}:${API_PORT}"
     volumes:
       - ./.env:/carrier/.env:ro
       - ./robotics_bay:/carrier/robotics_bay:rw
