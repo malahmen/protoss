@@ -58,7 +58,7 @@ class OutputMessages():
     EMBEDDER_POINTS_GENERATED="[Probe] Qdrant points generated."
     # qdrant
     QDRANT_COLLECTION_CREATION="[Warp Prism] Collection created. "
-    QDRANT_COLLECTION_CREATION="[Warp Prism] Index created. "
+    QDRANT_INDEX_CREATION="[Warp Prism] Index created. "
     # metrics - phoenix.py
     # api - disruptor.py
     API_INITIALIZATION="[Disruptor] Ready to serve."

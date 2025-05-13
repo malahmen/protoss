@@ -52,7 +52,9 @@ class EmbedderService:
                     # Extract page content
                     document_page = [page.page_content for page in pages if page.page_content.strip()] 
 
+                    self.context.logger.warning("[Probe] Requesting vectors.")
                     vectors = self.context.ollama.get_vectors(documents=document_page)
+                    self.context.logger.warning("[Probe] Vectors acquired.")
 
                     # Prepare points for qdrant
                     points = self.context.qdrant.generate_points(vectors, document_page)

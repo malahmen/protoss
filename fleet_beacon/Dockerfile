@@ -27,5 +27,5 @@ COPY docker-entrypoint.sh ./entrypoint.sh
 # Make sure it's executable
 RUN chmod +x ./entrypoint.sh
 
-# Set the custom entrypoint
+# Set the custom entrypoint - '--log-level=error'
 ENTRYPOINT ["./entrypoint.sh"]

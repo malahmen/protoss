@@ -237,10 +237,7 @@ async def log_requests(request: Request, call_next):
 
 @app.get("/health")
 @limiter.limit("5/minute")
-async def health_check(
-    request: Request,
-    service: ApiService = Depends(get_service)
-):
+async def health_check(request: Request, service: ApiService = Depends(get_service)):
     return await service.health_check()
 
 @app.post("/ask", response_model=QAResponse)

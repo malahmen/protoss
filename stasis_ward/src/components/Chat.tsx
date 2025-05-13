@@ -27,6 +27,17 @@ export default function Chat() {
     scrollToBottom();
   }, [messages]);
 
+  // Environment variable fallbacks
+  const apiUrl = import.meta.env.VITE_API_URL || 'http://localhost:8000';
+  const collection = import.meta.env.VITE_DEFAULT_COLLECTION || 'acknowledged';
+  const maxChunks = Number(import.meta.env.VITE_MAX_CONTEXT_CHUNKS || 5);
+  const strictContext = import.meta.env.VITE_STRICT_CONTEXT !== 'false';
+
+  // Warn if VITE_API_URL is not set
+  if (!import.meta.env.VITE_API_URL) {
+    console.warn("⚠️ VITE_API_URL is not set in your .env file.");
+  }
+
   const sendMessage = async () => {
     if (!input.trim()) return;
     
@@ -35,16 +46,16 @@ export default function Chat() {
     setIsLoading(true);
 
     try {
-      const response = await fetch('http://localhost:8000/ask', {
+      const response = await fetch(`${apiUrl}/ask`, {
         method: 'POST',
         headers: { 
           'Content-Type': 'application/json',
         },
         body: JSON.stringify({
           question: input,
-          collection: "acknowledged",
-          max_context_chunks: 5,
-          strict_context: true
+          collection: collection,
+          max_context_chunks: maxChunks,
+          strict_context: strictContext,
         }),
       });
 

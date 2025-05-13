@@ -12,9 +12,9 @@ class QdrantGateway:
 
     def initialize_client(self):
         self._qdrant_client = QdrantClient(
-            host=settings.QDRANT_HOST,
-            port=settings.QDRANT_PORT,
-            timeout=settings.QDRANT_TIMEOUT,
+            host=settings.db_host,
+            port=settings.db_port,
+            timeout=settings.db_timeout,
             prefer_grpc=True,
             check_compatibility=False
         )
@@ -32,7 +32,7 @@ class QdrantGateway:
             self._qdrant_client.recreate_collection(
                 collection_name=settings.collection_name,
                 vectors_config=VectorParams(
-                    size=settings.VECTOR_DIMENSION,
+                    size=settings.vector_dimension,
                     distance=Distance.COSINE
                 )
             )
@@ -45,26 +45,29 @@ class QdrantGateway:
                 field_name=field_name,
                 field_schema=field_schema
             )
-            self._logger.info(f"{output_messages.QDRANT_INXED_CREATION}", name=field_name)
+            self._logger.info(f"{output_messages.QDRANT_INDEX_CREATION}", name=field_name)
 
     def search(self, query_vector, collection=settings.collection_name):
         results = self._qdrant_client.search(
                 collection_name=collection,
                 query_vector=query_vector,
-                limit=int(settings.MAX_CHUNKS),
-                score_threshold=float(settings.AI_MODEL_SCORE),
-                search_params=SearchParams(hnsw_ef=int(settings.AI_MODEL_HNSW)),
+                limit=int(settings.max_chunks),
+                score_threshold=float(settings.model_score),
+                search_params=SearchParams(hnsw_ef=int(settings.model_hnsw)),
             )
+        
+        return results
         
     def generate_points(self, vectors, documents):
         if not vectors or not documents:
+            self._logger.warning("[Warp Prism] Skipped point generation - empty vectors/documents")
             return None
 
         points = [
                     PointStruct(
                         id=str(uuid.uuid4()),
                         vector=vector,
-                        payload={str(settings.QDRANT_INDEX_FIELD): document}
+                        payload={str(settings.index_field): document}
                     )
                     for vector, document in zip(vectors, documents)
                 ]
