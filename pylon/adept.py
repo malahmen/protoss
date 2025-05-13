@@ -61,6 +61,7 @@ class OutputMessages():
     QDRANT_COLLECTION_CREATION="[Warp Prism] Index created. "
     # metrics - phoenix.py
     # api - disruptor.py
+    API_INITIALIZATION="[Disruptor] Ready to serve."
     API_HEALTHY="healthy"
     API_UNHEALTHY="unhealthy"
     API_SUCCESS="success"

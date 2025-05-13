@@ -55,7 +55,7 @@ class ChunkerService:
                     pages = self.context.ollama.split_into_chunks(documents=documents)
                     
                     # send pages to their redis queue
-                    await self.context.redis.send_it(queue=settings.redis_queue_pages, content=pages, message_id=self.context.redis_gateway.generate_message_id())
+                    await self.context.redis.send_it(queue=settings.redis_queue_pages, content=pages, message_id=self.context.redis.generate_message_id())
 
                 except Exception as e:
                     self.context.logger.error(f"{output_messages.CHUNKER_EXCEPTION}", error=str(e))
