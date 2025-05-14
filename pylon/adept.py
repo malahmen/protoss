@@ -16,6 +16,7 @@ class OutputMessages():
     REDIS_MSG_FIELD_KO = "[Colossus hit] Missing required field"
     REDIS_MSG_CONTENT_EMPTY = "[Colossus hit] Empty content field "
     REDIS_MSG_FORMAT_KO = "[Colossus hit] Invalid base64 content"
+    REDIS_CONTENT_TO_DOCUMENT_OK="[Colossus] Content transformed into standard document. "
     # watcher - sentry.py
     WATCHER_INITIALIZATION = "[Sentry] Patrolling for new files..."
     WATCHER_EXCEPTION = "[Sentry down] Exploded "
@@ -24,6 +25,7 @@ class OutputMessages():
     WATCHER_READ_FILE_START = "[Sentry] Reading file"
     WATCHER_MOVE_FILE_START = "[Sentry] Sending processed file into directory"
     WATCHER_NO_FOLDER_KO = "[Sentry] Target folder not found"
+    WATCHER_QUEUE_TARGET="[Sentry] Target queue name "
     # extractor - zealot.py
     EXTRACTOR_INITIALIZATION = "[Zealot] Ready to serve."
     EXTRACTOR_EXCEPTION = "[Zealot down] Exploded "
@@ -56,9 +58,14 @@ class OutputMessages():
     EMBEDDER_KO = "[Probe] Destroyed."
     EMBEDDER_WAIT_START = "[Probe] Wating for orders."
     EMBEDDER_POINTS_GENERATED="[Probe] Qdrant points generated."
+    EMBEDDER_NO_MESSAGES_DECODED="[Probe] No messages in decoded data. "
+    EMBEDDER_REQUEST_VECTORS_START="[Probe] Requesting vectors."
+    EMBEDDER_REQUEST_VECTORS_ENDED="[Probe] Vectors acquired."
     # qdrant
+    QDRANT_COLLECTION_EXISTS="[Warp Prism] Collection exists. "
     QDRANT_COLLECTION_CREATION="[Warp Prism] Collection created. "
     QDRANT_INDEX_CREATION="[Warp Prism] Index created. "
+    QDRANT_POINTS_SKIPPED="[Warp Prism] Skipped point generation - empty vectors/documents"
     # metrics - phoenix.py
     # api - disruptor.py
     API_INITIALIZATION="[Disruptor] Ready to serve."

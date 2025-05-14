@@ -42,7 +42,7 @@ class WatcherService:
     async def send_files(self, session, filepath):
         """Asynchronous file ingestion."""
         filename = os.path.basename(filepath)
-        self.context.logger.warn(f"{output_messages.WATCHER_READ_FILE_START}", filename=filename)
+        self.context.logger.debug(f"{output_messages.WATCHER_READ_FILE_START}", filename=filename)
         
         with open(filepath, 'rb') as f:
             file_content = f.read()
@@ -58,11 +58,11 @@ class WatcherService:
                 content_mime=content_mime
             )
 
-            self.context.logger.info("[Sentry] Target queue name ", queue=settings.redis_queue_files)
+            self.context.logger.debug(f"{output_messages.WATCHER_QUEUE_TARGET}", queue=settings.redis_queue_files)
             await self.context.redis.send_message(payload, settings.redis_queue_files)
 
             processed_dir = os.path.join(watcher_settings.watch_folder, watcher_settings.processed_folder.lstrip("/"))
-            self.context.logger.warn(f"{output_messages.WATCHER_MOVE_FILE_START}", directory=processed_dir)
+            self.context.logger.debug(f"{output_messages.WATCHER_MOVE_FILE_START}", directory=processed_dir)
             
             os.makedirs(processed_dir, exist_ok=True)
             shutil.move(filepath, os.path.join(processed_dir, filename))

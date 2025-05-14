@@ -29,7 +29,7 @@ class ChunkerService:
 
     async def look_for_document_messages(self):
         """Asynchronous pages ingestion."""
-        self.context.logger.warn(f"{output_messages.CHUNKER_WAIT_START}")
+        self.context.logger.debug(f"{output_messages.CHUNKER_WAIT_START}")
         while True:
                 try:
                     document_message = await self.context.redis.get_message(settings.redis_queue_documents)

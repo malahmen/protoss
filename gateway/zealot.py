@@ -92,7 +92,7 @@ class ExtractorService:
                         error=output_messages.EXTRACTOR_READ_KO_MSG,
                         content_type=content_mime)
                 return None
-            self.context.logger.info(f"{output_messages.EXTRACTOR_READ_OK}")
+            self.context.logger.debug(f"{output_messages.EXTRACTOR_READ_OK}")
             return documents
         except Exception as e:
             record_error(error_type=output_messages.EXTRACTOR_READ_EXCEPTION)
@@ -105,7 +105,7 @@ class ExtractorService:
 
     async def look_for_file_messages(self):
         """Asynchronous documents ingestion."""
-        self.context.logger.warn(f"{output_messages.EXTRACTOR_WAIT_START}")
+        self.context.logger.debug(f"{output_messages.EXTRACTOR_WAIT_START}")
         while True:
                 try:
                     file_message = await self.context.redis.get_message(settings.redis_queue_files)

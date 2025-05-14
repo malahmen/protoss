@@ -28,7 +28,7 @@ class EmbedderService:
 
     async def look_for_pages_messages(self):
         """Asynchronous embeddings generation."""
-        self.context.logger.warn(f"{output_messages.EMBEDDER_WAIT_START}")
+        self.context.logger.debug(f"{output_messages.EMBEDDER_WAIT_START}")
         while True:
                 try:
                     pages_message = await self.context.redis.get_message(settings.redis_queue_pages)
@@ -38,7 +38,7 @@ class EmbedderService:
                     # decode message
                     decoded_pages = self.context.redis.decode_message(pages_message)
                     if not decoded_pages:
-                        self.context.logger.info(f"[Probe] No messages in decoded data. ", decoded_pages=len(decoded_pages))
+                        self.context.logger.debug(f"{output_messages.EMBEDDER_NO_MESSAGES_DECODED}", decoded_pages=len(decoded_pages))
                         continue
                     
                     # decode documents
@@ -52,13 +52,13 @@ class EmbedderService:
                     # Extract page content
                     document_page = [page.page_content for page in pages if page.page_content.strip()] 
 
-                    self.context.logger.warning("[Probe] Requesting vectors.")
+                    self.context.logger.debug(f"{output_messages.EMBEDDER_REQUEST_VECTORS_START}")
                     vectors = self.context.ollama.get_vectors(documents=document_page)
-                    self.context.logger.warning("[Probe] Vectors acquired.")
+                    self.context.logger.debug(f"{output_messages.EMBEDDER_REQUEST_VECTORS_ENDED}")
 
                     # Prepare points for qdrant
                     points = self.context.qdrant.generate_points(vectors, document_page)
-                    self.context.logger.info(f"{output_messages.EMBEDDER_POINTS_GENERATED}", points_count=len(points))
+                    self.context.logger.debug(f"{output_messages.EMBEDDER_POINTS_GENERATED}", points_count=len(points))
                     
                     self.context.qdrant.add_points(points)
                 except Exception as e:

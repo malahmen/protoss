@@ -41,8 +41,7 @@ class QdrantGateway:
                     )
                     self._logger.info(f"{output_messages.QDRANT_COLLECTION_CREATION}", name=settings.collection_name)
                 else:
-                    self._logger.info("Qdrant collection existence check", result=self._qdrant_client.collection_exists(settings.collection_name))
-                    self._logger.info("collection exists")
+                    self._logger.info(f"{output_messages.QDRANT_COLLECTION_EXISTS}", result=self._qdrant_client.collection_exists(settings.collection_name))
             except grpc.RpcError as e:
                 if "already exists" not in str(e).lower():
                     raise
@@ -69,7 +68,7 @@ class QdrantGateway:
         
     def generate_points(self, vectors, documents):
         if not vectors or not documents:
-            self._logger.warning("[Warp Prism] Skipped point generation - empty vectors/documents")
+            self._logger.debug(f"{output_messages.QDRANT_POINTS_SKIPPED}")
             return None
 
         points = [

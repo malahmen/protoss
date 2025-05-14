@@ -31,13 +31,12 @@ class OllamaGateway:
         if not self._chunker:
             self.initialize_client()
         pages = None
-        #self._logger.info(f"[Mothership Core] Need to chunk {documents}") # for debug only
 
         # Execute the document split into chunks
         with warnings.catch_warnings(): # because of the stupid "tfs_z" warning
             warnings.simplefilter("ignore")
             pages = self._chunker.split_documents(documents)
-        self._logger.info(f"{output_messages.CHUNKER_DONE}", chunks_count=len(pages))
+        self._logger.debug(f"{output_messages.CHUNKER_DONE}", chunks_count=len(pages))
         return pages
             
     def get_vectors(self, documents):

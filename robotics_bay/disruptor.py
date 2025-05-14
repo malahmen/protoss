@@ -48,8 +48,6 @@ class ApiService:
             chunks = await self.get_context_chunks(data.question, [data.collection], data.max_context_chunks)
             prompt = self.build_augmented_prompt(data.question, chunks, data.strict_context)
             answer = await self.get_response(prompt)
-
-            self.context.logger.warning("  ", answer=str(answer["response"]))
         except Exception as e:
             self.context.logger.error(output_messages.API_QUESTION_KO, error=str(e))
             raise HTTPException(status_code=500, detail=str(e))
@@ -122,11 +120,7 @@ Answer:"""
         embeddings = []
         total_texts = len(texts)
 
-        self.context.logger.info(
-            output_messages.API_EMBEDDINGS_START,
-            total_texts=total_texts,
-            model=settings.model_name
-        )
+        self.context.logger.debug(f"{output_messages.API_EMBEDDINGS_START}", total_texts=total_texts, model=settings.model_name)
 
         for idx, text in enumerate(texts):
             try:
@@ -145,10 +139,10 @@ Answer:"""
                     status = output_messages.API_SUCCESS
                     self.context.logger.debug(f"{output_messages.API_EMBEDDINGS_OK}", index=idx, embedding_length=len(embedding))
                 else:
-                    self.context.logger.warning(f"{output_messages.API_EMBEDDINGS_MISS} {settings.embed_field} ", index=idx, text_preview=text[:100])
+                    self.context.logger.debug(f"{output_messages.API_EMBEDDINGS_MISS} {settings.embed_field} ", index=idx, text_preview=text[:100])
 
                 progress = f"{(idx + 1) / total_texts * 100:.1f}%"
-                self.context.logger.info(
+                self.context.logger.debug(
                     output_messages.API_EMBEDDINGS_PROGRESS,
                     current=idx + 1,
                     total=total_texts,
@@ -164,7 +158,7 @@ Answer:"""
                     total=total_texts
                 )
 
-        self.context.logger.info(
+        self.context.logger.debug(
             output_messages.API_EMBEDDINGS_ENDED,
             succeeded=len(embeddings),
             failed=total_texts - len(embeddings),
@@ -232,7 +226,7 @@ async def log_requests(request: Request, call_next):
     # no DI yet
     context = getattr(request.app.state, "context", None)
     if context and hasattr(context, "logger"):
-        context.logger.info(
+        context.logger.debug(
             output_messages.API_REQUEST_TAG,
             method=request.method,
             url=str(request.url),
