@@ -3,6 +3,7 @@ from qdrant_client import QdrantClient
 from qdrant_client.models import PointStruct, VectorParams, Distance, PayloadSchemaType, SearchParams
 import uuid
 import structlog
+import grpc
 
 class QdrantGateway:
 
@@ -29,14 +30,22 @@ class QdrantGateway:
 
     def recreate_collection(self):
         if self._qdrant_client:
-            self._qdrant_client.recreate_collection(
-                collection_name=settings.collection_name,
-                vectors_config=VectorParams(
-                    size=settings.vector_dimension,
-                    distance=Distance.COSINE
-                )
-            )
-            self._logger.info(f"{output_messages.QDRANT_COLLECTION_CREATION}", name=settings.collection_name)
+            try:
+                if not self._qdrant_client.collection_exists(settings.collection_name):
+                    self._qdrant_client.recreate_collection(
+                        collection_name=settings.collection_name,
+                        vectors_config=VectorParams(
+                            size=settings.vector_dimension,
+                            distance=Distance.COSINE
+                        )
+                    )
+                    self._logger.info(f"{output_messages.QDRANT_COLLECTION_CREATION}", name=settings.collection_name)
+                else:
+                    self._logger.info("Qdrant collection existence check", result=self._qdrant_client.collection_exists(settings.collection_name))
+                    self._logger.info("collection exists")
+            except grpc.RpcError as e:
+                if "already exists" not in str(e).lower():
+                    raise
 
     def create_payload_index(self, field_name="text", field_schema=PayloadSchemaType.TEXT):
         if self._qdrant_client:
