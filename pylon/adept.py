@@ -66,6 +66,7 @@ class OutputMessages():
     QDRANT_COLLECTION_CREATION="[Warp Prism] Collection created. "
     QDRANT_INDEX_CREATION="[Warp Prism] Index created. "
     QDRANT_POINTS_SKIPPED="[Warp Prism] Skipped point generation - empty vectors/documents"
+    QDRANT_SEARCH_RESULT="[Warp Prism] Targets found "
     # metrics - phoenix.py
     # api - disruptor.py
     API_INITIALIZATION="[Disruptor] Ready to serve."
@@ -89,6 +90,8 @@ class OutputMessages():
     API_PROMPT_EXCEPTION="[Disruptor hit] System prompt failed"
     API_PROMPT_EXCEPTION_MSG="System unable to generate answer due to service error"
     API_REQUEST_TAG="[Disruptor] System request"
+    API_CONTEXT_MATCHES="[Disruptor] Acquired targets "
+    API_VECTORS_GENERATED="[Disruptor] Acquired attack vectors "
     # scrapper
     # parser
 

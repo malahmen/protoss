@@ -1,6 +1,6 @@
 from pylon import settings, output_messages
 from qdrant_client import QdrantClient
-from qdrant_client.models import PointStruct, VectorParams, Distance, PayloadSchemaType, SearchParams
+from qdrant_client.models import PointStruct, VectorParams, Distance, PayloadSchemaType, SearchParams, Filter, FieldCondition, MatchText
 import uuid
 import structlog
 import grpc
@@ -48,22 +48,37 @@ class QdrantGateway:
 
     def create_payload_index(self, field_name="text", field_schema=PayloadSchemaType.TEXT):
         if self._qdrant_client:
-            self._qdrant_client.create_payload_index(
-                collection_name=settings.collection_name,
-                field_name=field_name,
-                field_schema=field_schema
-            )
-            self._logger.info(f"{output_messages.QDRANT_INDEX_CREATION}", name=field_name)
+            collection_info = self._qdrant_client.get_collection(collection_name=settings.collection_name)
+            existing_indexes = collection_info.payload_schema or {}
+            if field_name not in existing_indexes:
+                self._qdrant_client.create_payload_index(
+                    collection_name=settings.collection_name,
+                    field_name=field_name,
+                    field_schema=field_schema
+                )
+                self._logger.info(f"{output_messages.QDRANT_INDEX_CREATION}", name=field_name)
 
-    def search(self, query_vector, collection=settings.collection_name):
+    def search(self, query_vector, question, collection=settings.collection_name):
+
+        filter = Filter(
+                must=[
+                    FieldCondition(
+                        key=settings.index_field,
+                        match=MatchText(text=keyword)
+                    ) for keyword in question
+                ]
+            )
+
         results = self._qdrant_client.search(
                 collection_name=collection,
                 query_vector=query_vector,
+                query_filter=filter,
                 limit=int(settings.max_chunks),
                 score_threshold=float(settings.model_score),
                 search_params=SearchParams(hnsw_ef=int(settings.model_hnsw)),
             )
-        
+        self._logger.debug(f"{output_messages.QDRANT_SEARCH_RESULT}", search_results=results)
+
         return results
         
     def generate_points(self, vectors, documents):

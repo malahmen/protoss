@@ -65,12 +65,15 @@ class ApiService:
         try:
             self.context.logger.debug(f"{output_messages.API_QUESTION} {question}")
             query_vector = self.generate_embeddings([question])[0]
+            self.context.logger.debug(f"{output_messages.API_VECTORS_GENERATED}", generated=query_vector)
+
             all_matches = []
 
             for collection in collections:
-                results = self.context.qdrant.search(query_vector=query_vector, collection=collection)
+                results = self.context.qdrant.search(query_vector=query_vector, question=question, collection=collection)
                 all_matches.extend([hit.payload[settings.index_field] for hit in results if settings.index_field in hit.payload])
 
+            self.context.logger.debug(f"{output_messages.API_CONTEXT_MATCHES}", matches=all_matches)
             return all_matches
         except Exception as e:
             self.context.logger.error(f"{output_messages.API_CONTEXT_KO}", error=str(e))
