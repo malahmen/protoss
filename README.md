@@ -3,7 +3,7 @@
 ## Description
 Protoss is a AI-powered RAG (Retrieval-Augmented Generation) system that processes documents, creates embeddings, and provides intelligent responses through a distributed microservices architecture.
 
-The system is designed with a StarCraft-inspired naming convention, where each service represents a different unit with specific responsibilities (for now).
+The system is designed with a StarCraft-inspired naming convention, where each service represents a different unit with specific responsibilities (for now), and started as a learning project about AI RAG systems.
 
 ## Features
 - Document processing pipeline for various file types
