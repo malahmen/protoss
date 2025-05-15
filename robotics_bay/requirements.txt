@@ -9,3 +9,7 @@ langchain-experimental>=0.0.49    # Required for SemanticChunker - mothership_co
 prometheus-client>=0.17.1         # phoenix
 qdrant-client>=1.8.3              # warp-prism 
 redis>=4.6.0                      # colossus
+fastapi>=0.104.1                  # disruptor
+slowapi                           # disruptor
+httpx
+uvicorn[standard]
