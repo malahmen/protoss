@@ -72,7 +72,6 @@ class QdrantGateway:
         results = self._qdrant_client.search(
                 collection_name=collection,
                 query_vector=query_vector,
-                query_filter=filter,
                 limit=int(settings.max_chunks),
                 score_threshold=float(settings.model_score),
                 search_params=SearchParams(hnsw_ef=int(settings.model_hnsw)),

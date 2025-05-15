@@ -5,7 +5,6 @@ from slowapi import Limiter, _rate_limit_exceeded_handler
 from slowapi.util import get_remote_address
 from slowapi.errors import RateLimitExceeded
 from pydantic import BaseModel, Field
-import requests
 import httpx
 import aiohttp
 import json
@@ -64,9 +63,8 @@ class ApiService:
         """Retrieve relevant context chunks from vector DB"""
         try:
             self.context.logger.debug(f"{output_messages.API_QUESTION} {question}")
-            query_vector = self.generate_embeddings([question])[0]
+            query_vector = self.context.ollama.get_vectors(question)[0]
             self.context.logger.debug(f"{output_messages.API_VECTORS_GENERATED}", generated=query_vector)
-
             all_matches = []
 
             for collection in collections:
@@ -118,57 +116,6 @@ Answer:"""
         except Exception as e:
             self.context.logger.error(output_messages.API_PROMPT_EXCEPTION, error=str(e))
             return output_messages.API_PROMPT_EXCEPTION_MSG
-
-    def generate_embeddings(self, texts: list[str]) -> list[list[float]]:
-        embeddings = []
-        total_texts = len(texts)
-
-        self.context.logger.debug(f"{output_messages.API_EMBEDDINGS_START}", total_texts=total_texts, model=settings.model_name)
-
-        for idx, text in enumerate(texts):
-            try:
-                self.context.logger.debug(f"{output_messages.API_EMBEDDINGS_STARTED}", index=idx, text_preview=text[:100])
-
-                response = requests.post(f"{settings.model_api}{settings.model_embeddings}", json={
-                    "model": settings.model_name,
-                    "prompt": text
-                })
-                response.raise_for_status()
-                data = response.json()
-
-                if settings.embed_field in data:
-                    embedding = data[settings.embed_field]
-                    embeddings.append(embedding)
-                    status = output_messages.API_SUCCESS
-                    self.context.logger.debug(f"{output_messages.API_EMBEDDINGS_OK}", index=idx, embedding_length=len(embedding))
-                else:
-                    self.context.logger.debug(f"{output_messages.API_EMBEDDINGS_MISS} {settings.embed_field} ", index=idx, text_preview=text[:100])
-
-                progress = f"{(idx + 1) / total_texts * 100:.1f}%"
-                self.context.logger.debug(
-                    output_messages.API_EMBEDDINGS_PROGRESS,
-                    current=idx + 1,
-                    total=total_texts,
-                    progress=progress,
-                    status=status
-                )
-
-            except Exception as e:
-                self.context.logger.error(
-                    output_messages.API_EMBEDDINGS_PROGRESS,
-                    error=str(e),
-                    current=idx + 1,
-                    total=total_texts
-                )
-
-        self.context.logger.debug(
-            output_messages.API_EMBEDDINGS_ENDED,
-            succeeded=len(embeddings),
-            failed=total_texts - len(embeddings),
-            total=total_texts
-        )
-
-        return embeddings
 
 # Rate limiter setup
 limiter = Limiter(key_func=get_remote_address)
