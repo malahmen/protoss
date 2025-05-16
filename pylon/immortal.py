@@ -16,6 +16,13 @@ class ApplicationSettings(BaseSettings):
     model_score: float = Field(..., env="MODEL_SCORE")
     model_hnsw: int = Field(..., env="MODEL_HNSW")
     base_url: str = Field(..., env="BASE_URL")
+    embedder_model_name: str = Field(..., env="EMBEDDER_MODEL_NAME")
+    embedder_ollama: str = Field(..., env="EMBEDDER_OLLAMA")
+    embedder_huggingface: str = Field(..., env="EMBEDDER_HUGGINGFACE")
+    current_embedder_name: str = Field(..., env="CURRENT_EMBEDDER_NAME")
+    prompt_rules: str = Field(..., env="PROMPT_RULES")
+    prompt_response_field: str = Field(..., env="PROMPT_RESPONSE_FIELD")
+    
 
     # Qdrant
     db_version: str = Field(..., env="DB_VERSION")

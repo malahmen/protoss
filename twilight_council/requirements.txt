@@ -9,3 +9,6 @@ langchain-experimental>=0.0.49    # Required for SemanticChunker - mothership_co
 prometheus-client>=0.17.1         # phoenix
 qdrant-client>=1.8.3              # warp-prism 
 redis>=4.6.0                      # colossus
+sentence-transformers>=2.6.0      # mothership_core
+langchain-huggingface>=0.1.0      # mothership_core
+hf_xet

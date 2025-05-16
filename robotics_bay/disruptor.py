@@ -6,8 +6,6 @@ from slowapi.util import get_remote_address
 from slowapi.errors import RateLimitExceeded
 from pydantic import BaseModel, Field
 import httpx
-import aiohttp
-import json
 from typing import List
 from datetime import datetime
 import time
@@ -42,80 +40,22 @@ class ApiService:
             raise HTTPException(status_code=503, detail=output_messages.API_HEALTH_KO_MSG)
 
     async def handle_question(self, data):
-        """Ask a question with vector DB context augmentation"""
+        """Ask chain questions with vector DB context augmentation"""
         try:
-            chunks = await self.get_context_chunks(data.question, [data.collection], data.max_context_chunks)
-            prompt = self.build_augmented_prompt(data.question, chunks, data.strict_context)
-            answer = await self.get_response(prompt)
+            answer = self.context.ollama.ask_question(data.question, self.context.qdrant)
         except Exception as e:
             self.context.logger.error(output_messages.API_QUESTION_KO, error=str(e))
             raise HTTPException(status_code=500, detail=str(e))
-        
-        return {
-                "answer": answer["response"],
-                "answer_context": answer["context"],
-                "context_chunks": chunks,
-                "model": settings.model_name,
-                "timestamp": datetime.utcnow()
-            }
+        return answer
 
-    async def get_context_chunks(self, question: str, collections: list[str], max_context_chunks: int) -> List[str]:
-        """Retrieve relevant context chunks from vector DB"""
+    async def handle_question_one_shot(self, data):
+        """Ask a one-shot question with vector DB context augmentation"""
         try:
-            self.context.logger.debug(f"{output_messages.API_QUESTION} {question}")
-            query_vector = self.context.ollama.get_vectors(question)[0]
-            self.context.logger.debug(f"{output_messages.API_VECTORS_GENERATED}", generated=query_vector)
-            all_matches = []
-
-            for collection in collections:
-                results = self.context.qdrant.search(query_vector=query_vector, question=question, collection=collection)
-                all_matches.extend([hit.payload[settings.index_field] for hit in results if settings.index_field in hit.payload])
-
-            self.context.logger.debug(f"{output_messages.API_CONTEXT_MATCHES}", matches=all_matches)
-            return all_matches
+            answer = self.context.ollama.ask_single_question(data.question, self.context.qdrant)
         except Exception as e:
-            self.context.logger.error(f"{output_messages.API_CONTEXT_KO}", error=str(e))
-            return []
-
-    def build_augmented_prompt(self, question: str, chunks: List[str], strict: bool = True) -> str:
-        """Build context-aware prompt"""
-        prompt_context = "\n\n".join(chunks)
-
-        prompt = f"""
-{api_settings.prompt_rules}
-
-Context:
-{prompt_context}
-
-Question:
-{question}
-
-Answer:"""
-
-        self.context.logger.debug(f"{output_messages.API_PROMPT} {prompt}")
-        return prompt
-
-    async def get_response(self, prompt: str) -> str:
-        """Get LLM response with error handling"""
-        try:
-            async with aiohttp.ClientSession() as session:
-                async with session.post(
-                    f"{settings.model_api}{settings.model_generate}",
-                    headers={"Content-Type": "application/json"},
-                    data=json.dumps({
-                        "model": settings.model_name,
-                        "prompt": prompt,
-                        "stream": False
-                    })
-                ) as response:
-                    response_text = await response.text()
-                    print(response_text)
-                    response_json = json.loads(response_text)
-                    print(response_json)
-                    return response_json
-        except Exception as e:
-            self.context.logger.error(output_messages.API_PROMPT_EXCEPTION, error=str(e))
-            return output_messages.API_PROMPT_EXCEPTION_MSG
+            self.context.logger.error(output_messages.API_QUESTION_KO, error=str(e))
+            raise HTTPException(status_code=500, detail=str(e))
+        return answer
 
 # Rate limiter setup
 limiter = Limiter(key_func=get_remote_address)

@@ -52,6 +52,7 @@ class ChunkerService:
                     ]
 
                     # split the data into chunks (documents into pages)
+                    # until here no reasoning has been called or llm engine
                     pages = self.context.ollama.split_into_chunks(documents=documents)
                     
                     # send pages to their redis queue
