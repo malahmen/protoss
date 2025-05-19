@@ -61,35 +61,14 @@ class QdrantGateway:
                 self._logger.info(f"{output_messages.QDRANT_INDEX_CREATION}", name=field_name)
 
     def search(self, query_vector, question, collection=settings.collection_name):
-        # Create a filter that matches the text field with the question
-        # Using a combination of must and should for better results
-        filter = Filter(
-            must=[
-                FieldCondition(
-                    key=settings.index_field,
-                    match=MatchText(
-                        text=question
-                    )
-                )
-            ],
-            should=[
-                FieldCondition(
-                    key=settings.index_field,
-                    match=MatchValue(
-                        value=question,
-                        text={"type": "bm25"}
-                    )
-                )
-            ]
-        )
-
         results = self._qdrant_client.search(
             collection_name=collection,
             query_vector=query_vector,
             limit=int(settings.max_chunks),
+            with_payload=True,
+            with_vectors=False,
             score_threshold=float(settings.model_score),
-            search_params=SearchParams(hnsw_ef=int(settings.model_hnsw)),
-            query_filter=filter
+            search_params=SearchParams(hnsw_ef=int(settings.model_hnsw))
         )
         self._logger.debug(f"{output_messages.QDRANT_SEARCH_RESULT}", search_results=results)
 

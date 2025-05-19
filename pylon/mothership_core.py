@@ -6,23 +6,26 @@ from langchain_huggingface import HuggingFaceEmbeddings
 from langchain_ollama import OllamaEmbeddings
 from langchain_ollama import OllamaLLM
 from langchain.prompts import PromptTemplate
-from langchain.chains.llm import LLMChain
-from langchain.chains.combine_documents.stuff import StuffDocumentsChain
-from langchain.chains import RetrievalQA
+#from langchain.chains.llm import LLMChain
+#from langchain.chains.combine_documents.stuff import StuffDocumentsChain
+#from langchain.chains import RetrievalQA
+from langchain.chains.combine_documents import create_stuff_documents_chain
+from langchain.chains import create_retrieval_chain
 from langchain_core.documents import Document
-from typing import List
+from dataclasses import dataclass
+from typing import List, Any
 from datetime import datetime
 import warnings
 import logging
 from langchain.schema import BaseRetriever
+from pydantic import BaseModel
 
 # Minimal wrapper to make gateway compatible with LangChain
-class QdrantRetriever(BaseRetriever):
-    def __init__(self, qdrant, embedder):
-        self.qdrant = qdrant
-        self.embedder = embedder
+class QdrantRetriever(BaseRetriever, BaseModel):
+    qdrant: Any
+    embedder: Any
 
-    def get_relevant_documents(self, query: str):
+    def get_relevant_documents(self, query: str) -> List[Document]:
         vector = self.embedder.embed_query(query)
         results = self.qdrant.get_relevant_documents(vector, query)
         return [Document(page_content=hit.payload[settings.index_field]) for hit in results]
@@ -59,7 +62,7 @@ class OllamaGateway:
         self._embedder_factory = EmbedderFactory()
         self._embedder = self._embedder_factory.get_embedder(settings.current_embedder_name)
         self._splitter = SemanticChunker(self._embedder)
-        self._llm = OllamaLLM(model=settings.model_name)
+        self._llm = OllamaLLM(model=settings.model_name, base_url=settings.base_url)
 
     # the usual getters
     def get_embedder(self):
@@ -112,7 +115,7 @@ class OllamaGateway:
     def get_retriever(self, qdrant):
         if not qdrant or not self._embedder:
             return None
-        return QdrantRetriever(qdrant, self._embedder)
+        return QdrantRetriever(qdrant=qdrant, embedder=self._embedder)
 
     def get_prompt_template(self):
         return f"""
@@ -120,41 +123,50 @@ class OllamaGateway:
         Context: \n
         {{context}} \n
         Question: \n
-        {{question}} \n
+        {{input}} \n
         Answer:"""
 
     def build_qa_chain(self, retriever, prompt_template):
         """Builds a RetrievalQA chain with Ollama and prompt template."""
+        if not self._llm:
+            self.initialize_client()
+
         prompt = PromptTemplate.from_template(prompt_template)
+        self._logger.error("[Mothership] DEBUG PROMPT ", prompt=prompt)
+        #llm_chain = LLMChain(llm=self._llm, prompt=prompt)
+        combine_documents_chain = create_stuff_documents_chain(self._llm, prompt)
 
-        llm_chain = LLMChain(llm=self._llm, prompt=prompt)
-        combine_documents_chain = StuffDocumentsChain(
-            llm_chain=llm_chain,
-            document_variable_name="context"
-        )
-
-        qa_chain = RetrievalQA(
-            combine_documents_chain=combine_documents_chain,
-            retriever=retriever
-        )
+        qa_chain = create_retrieval_chain(retriever, combine_documents_chain)
 
         return qa_chain
 
     def ask_question(self, question, qdrant):
+        if not self._llm or not self._embedder:
+            self.initialize_client()
         # Build retriever with inited embedder for qdrant
         retriever = self.get_retriever(qdrant=qdrant)
+        if not retriever:
+            raise ValueError("Retriever could not be initialized")
         # Build QA chain using custom prompt
         prompt_template = self.get_prompt_template()
 
         qa_chain = self.build_qa_chain(retriever, prompt_template=prompt_template)
 
         # Run chain
-        result = qa_chain.invoke({"query": question})
+        try:
+            result = qa_chain.invoke({"input": question})
+        except Exception as e:
+            self._logger.error("[Mothership] DEBUG ", error=str(e))
+        self._logger.error("[Mothership] DEBUG ", result=result)
 
-        context_chunks = [doc.page_content for doc in result.get("source_documents", [])]
+        context_chunks = [doc.page_content for doc in result.get("context", [])]
+        self._logger.error("[Mothership] DEBUG ", context_chunks=context_chunks)
+
+        answer = result.get("answer", "").strip();
+        self._logger.error("[Mothership] DEBUG ", answer=answer)
 
         return {
-            "answer": result.get("result", "").strip(),
+            "answer": answer,
             "context_chunks": context_chunks,
             "model": settings.model_name,
             "timestamp": datetime.utcnow()
