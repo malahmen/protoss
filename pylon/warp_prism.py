@@ -1,6 +1,6 @@
 from pylon import settings, output_messages
 from qdrant_client import QdrantClient
-from qdrant_client.models import PointStruct, VectorParams, Distance, PayloadSchemaType, SearchParams, Filter, FieldCondition, MatchText
+from qdrant_client.models import PointStruct, VectorParams, Distance, PayloadSchemaType, SearchParams, Filter, FieldCondition, MatchText, MatchValue
 import uuid
 import structlog
 import grpc
@@ -31,8 +31,10 @@ class QdrantGateway:
     def recreate_collection(self):
         if self._qdrant_client:
             try:
-                if not self._qdrant_client.collection_exists(settings.collection_name):
-                    self._qdrant_client.recreate_collection(
+                exists = self._qdrant_client.collection_exists(settings.collection_name)
+                self._logger.info(f"QDRANT DEBUG ", name=settings.collection_name, exists=exists)
+                if not exists:
+                    self._qdrant_client.create_collection(
                         collection_name=settings.collection_name,
                         vectors_config=VectorParams(
                             size=settings.vector_dimension,
@@ -59,23 +61,15 @@ class QdrantGateway:
                 self._logger.info(f"{output_messages.QDRANT_INDEX_CREATION}", name=field_name)
 
     def search(self, query_vector, question, collection=settings.collection_name):
-
-        filter = Filter(
-                must=[
-                    FieldCondition(
-                        key=settings.index_field,
-                        match=MatchText(text=keyword)
-                    ) for keyword in question
-                ]
-            )
-
         results = self._qdrant_client.search(
-                collection_name=collection,
-                query_vector=query_vector,
-                limit=int(settings.max_chunks),
-                score_threshold=float(settings.model_score),
-                search_params=SearchParams(hnsw_ef=int(settings.model_hnsw)),
-            )
+            collection_name=collection,
+            query_vector=query_vector,
+            limit=int(settings.max_chunks),
+            with_payload=True,
+            with_vectors=True,
+            score_threshold=float(settings.model_score),
+            search_params=SearchParams(hnsw_ef=int(settings.model_hnsw))
+        )
         self._logger.debug(f"{output_messages.QDRANT_SEARCH_RESULT}", search_results=results)
 
         return results
@@ -101,3 +95,12 @@ class QdrantGateway:
                         collection_name=collection,
                         points=points,
                     )
+
+    def add_to_qdrant(self, vectors, texts):
+        if not vectors or not texts:
+            return
+        points = self.generate_points(vectors, texts)
+        self.add_points(points)
+
+    def get_relevant_documents(self, vector, query):
+        return self.search(query_vector=vector, question=query)

@@ -53,14 +53,12 @@ class EmbedderService:
                     document_page = [page.page_content for page in pages if page.page_content.strip()] 
 
                     self.context.logger.debug(f"{output_messages.EMBEDDER_REQUEST_VECTORS_START}")
+                    # generate the vectors for the extracted page content - reasoning heavy load
                     vectors = self.context.ollama.get_vectors(documents=document_page)
                     self.context.logger.debug(f"{output_messages.EMBEDDER_REQUEST_VECTORS_ENDED}")
 
-                    # Prepare points for qdrant
-                    points = self.context.qdrant.generate_points(vectors, document_page)
-                    self.context.logger.debug(f"{output_messages.EMBEDDER_POINTS_GENERATED}", points_count=len(points))
-                    
-                    self.context.qdrant.add_points(points)
+                    # add data to qdrant
+                    self.context.qdrant.add_to_qdrant(vectors, document_page)
                 except Exception as e:
                     self.context.logger.error(f"{output_messages.EMBEDDER_EXCEPTION}", error=str(e))
                     traceback.print_exc()

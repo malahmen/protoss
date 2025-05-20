@@ -10,3 +10,6 @@ prometheus-client>=0.17.1         # phoenix
 qdrant-client>=1.8.3              # warp-prism 
 redis>=4.6.0                      # colossus
 pdfplumber>=0.10.0                # zealot
+sentence-transformers>=2.6.0      # mothership_core
+langchain-huggingface>=0.1.0      # mothership_core
+hf_xet
