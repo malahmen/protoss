@@ -66,7 +66,7 @@ class QdrantGateway:
             query_vector=query_vector,
             limit=int(settings.max_chunks),
             with_payload=True,
-            with_vectors=False,
+            with_vectors=True,
             score_threshold=float(settings.model_score),
             search_params=SearchParams(hnsw_ef=int(settings.model_hnsw))
         )

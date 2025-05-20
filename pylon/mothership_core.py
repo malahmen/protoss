@@ -119,12 +119,16 @@ class OllamaGateway:
 
     def get_prompt_template(self):
         return f"""
-        {settings.prompt_rules} \n
-        Context: \n
-        {{context}} \n
-        Question: \n
-        {{input}} \n
-        Answer:"""
+{settings.prompt_rules}
+
+======== CONTEXT ========
+{{context}}
+======== END CONTEXT ========
+
+Question: {{input}}
+
+Answer (copy exactly as written above):
+"""
 
     def build_qa_chain(self, retriever, prompt_template):
         """Builds a RetrievalQA chain with Ollama and prompt template."""
@@ -157,13 +161,13 @@ class OllamaGateway:
             result = qa_chain.invoke({"input": question})
         except Exception as e:
             self._logger.error("[Mothership] DEBUG ", error=str(e))
-        self._logger.error("[Mothership] DEBUG ", result=result)
+        self._logger.warning("[Mothership] DEBUG ", result=result)
 
         context_chunks = [doc.page_content for doc in result.get("context", [])]
-        self._logger.error("[Mothership] DEBUG ", context_chunks=context_chunks)
+        self._logger.warning("[Mothership] DEBUG ", context_chunks=context_chunks)
 
         answer = result.get("answer", "").strip();
-        self._logger.error("[Mothership] DEBUG ", answer=answer)
+        self._logger.warning("[Mothership] DEBUG ", answer=answer)
 
         return {
             "answer": answer,
