@@ -159,12 +159,13 @@ services:
       context: ./stasis_ward
       args:
         NODE_IMAGE: ${NODE_IMAGE}
-        NGINX_IMAGE: ${NGINX_IMAGE}
     env_file:
       - ./.env
       - ./stasis_ward/.env
     ports:
-      - "${ORACLE_PORT_IN}:${ORACLE_PORT_OUT}"
+      - "${ORACLE_PORT_IN}:${ORACLE_PORT_IN}"
+    volumes:
+      - ./stasis_ward:/app
     depends_on:
       - disruptor
     mem_limit: 1g

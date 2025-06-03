@@ -4,6 +4,9 @@ from qdrant_client.models import PointStruct, VectorParams, Distance, PayloadSch
 import uuid
 import structlog
 import grpc
+from pymongo import MongoClient, ASCENDING, DESCENDING
+from pymongo.errors import PyMongoError
+import logging 
 
 class QdrantGateway:
 
@@ -104,3 +107,69 @@ class QdrantGateway:
 
     def get_relevant_documents(self, vector, query):
         return self.search(query_vector=vector, question=query)
+
+class MongoGateway:
+    def __init__(self):
+        self._client = None
+        self._db = None
+        self._logger = structlog.get_logger()
+
+    def initialize_client(self):
+        try:
+            self._client = MongoClient(
+                host=settings.mongodb_host,
+                port=int(settings.mongodb_port),
+                username=settings.mongodb_user,
+                password=settings.mongodb_pass,
+                serverSelectionTimeoutMS=5000
+            )
+            logging.getLogger("pymongo").setLevel(logging.WARNING)
+            self._db = self._client[settings.mongodb_database]
+            self._logger.info(output_messages.MONGO_CONNECTION_ESTABLISHED)
+        except PyMongoError as e:
+            self._logger.error(output_messages.MONGO_CONNECTION_FAILED, error=str(e))
+            raise
+
+    def get_client(self):
+        if not self._client:
+            self.initialize_client()
+        return self._client
+
+    def get_database(self):
+        if not self._db:
+            self.initialize_client()
+        return self._db
+
+    def health_check(self):
+        try:
+            self._client.admin.command('ping')
+            return True
+        except Exception as e:
+            self._logger.error(output_messages.MONGO_HEALTH_CHECK_FAILED, error=str(e))
+            return False
+
+    def create_index(self, collection_name, field_name, ascending=True):
+        db = self.get_database()
+        direction = ASCENDING if ascending else DESCENDING
+        db[collection_name].create_index([(field_name, direction)])
+        self._logger.info(output_messages.MONGO_INDEX_CREATED, collection=collection_name, field=field_name)
+
+    def insert_documents(self, collection_name, documents):
+        if not documents:
+            self._logger.debug(output_messages.MONGO_NO_DOCUMENTS_TO_INSERT)
+            return
+        db = self.get_database()
+        result = db[collection_name].insert_many(documents)
+        self._logger.info(output_messages.MONGO_INSERT_SUCCESS, inserted_ids=result.inserted_ids)
+
+    def find_documents(self, collection_name, query, limit=10):
+        db = self.get_database()
+        cursor = db[collection_name].find(query).limit(limit)
+        results = list(cursor)
+        self._logger.debug(output_messages.MONGO_FIND_RESULTS, count=len(results))
+        return results
+
+    def drop_collection(self, collection_name):
+        db = self.get_database()
+        db.drop_collection(collection_name)
+        self._logger.info(output_messages.MONGO_COLLECTION_DROPPED, collection=collection_name)

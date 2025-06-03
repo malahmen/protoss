@@ -58,6 +58,13 @@ class ApplicationSettings(BaseSettings):
     oracle_port_in: int = Field(..., env="ORACLE_PORT_IN")
     oracle_port_out: int = Field(..., env="ORACLE_PORT_OUT")
 
+    # mongodb atlas
+    mongodb_user: str = Field(..., env="MONGODB_USER")
+    mongodb_pass: str = Field(..., env="MONGODB_PASS")
+    mongodb_port: str = Field(..., env="MONGODB_PORT")
+    mongodb_host: str = Field(..., env="MONGODB_HOST")
+    mongodb_database: str = Field(..., env="MONGODB_DATABASE")
+
     # General
     encoding: str = Field(..., env="ENCODING")
     async_timeout: int = Field(..., env="ASYNC_TIMEOUT")

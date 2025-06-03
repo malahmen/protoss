@@ -1,35 +1,28 @@
-# Declare all arguments together to prevent Docker issues
-ARG NODE_IMAGE
-ARG NGINX_IMAGE
+FROM node:20-alpine
 
-# Set up the Node.js environment for the frontend
-FROM ${NODE_IMAGE} AS builder
+WORKDIR /app
 
-# Set the working directory for the build process
-WORKDIR /carrier
+# Install pnpm
+RUN npm install -g pnpm
 
-# Copy package.json and install dependencies
-COPY package*.json ./
-RUN npm install
+# Copy package files
+COPY package.json pnpm-lock.yaml ./
 
-# Copy the rest of the frontend source code
+# Install dependencies
+RUN pnpm install
+
+# Copy the rest of the application
 COPY . .
 
-# Build the frontend (assuming React or similar framework)
-RUN npm run build
+# Build the application
+RUN pnpm build
 
-# Set up NGINX to serve the built frontend
-FROM ${NGINX_IMAGE} AS nginx
+# Expose port
+EXPOSE 3000
 
-# Copy built frontend files from the previous stage
-COPY --from=builder /carrier/dist /usr/share/nginx/html
+ENV PORT 3000
+ENV HOSTNAME "0.0.0.0"
+ENV APP_ENV development
 
-# Expose the frontend port (mapped to $FRONTEND_PORT)
-EXPOSE ${FRONTEND_PORT}
-EXPOSE ${NGINX_PORT}
-
-# Default NGINX config (can be customized based on your needs)
-#COPY ./nginx.conf /etc/nginx/nginx.conf
-
-# Start NGINX to serve the frontend
-CMD ["nginx", "-g", "daemon off;"]
+# Start the application
+CMD ["sh", "-c", "pnpm dev"]
