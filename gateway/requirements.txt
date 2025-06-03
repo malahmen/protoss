@@ -13,3 +13,4 @@ pdfplumber>=0.10.0                # zealot
 sentence-transformers>=2.6.0      # mothership_core
 langchain-huggingface>=0.1.0      # mothership_core
 hf_xet
+pymongo

@@ -92,6 +92,15 @@ class OutputMessages():
     API_REQUEST_TAG="[Disruptor] System request"
     API_CONTEXT_MATCHES="[Disruptor] Acquired targets "
     API_VECTORS_GENERATED="[Disruptor] Acquired attack vectors "
+    # mongodb atlas
+    MONGO_CONNECTION_ESTABLISHED = "MongoDB connection established"
+    MONGO_CONNECTION_FAILED = "MongoDB connection failed"
+    MONGO_HEALTH_CHECK_FAILED = "MongoDB health check failed"
+    MONGO_INDEX_CREATED = "Index created in MongoDB"
+    MONGO_NO_DOCUMENTS_TO_INSERT = "No documents to insert in MongoDB"
+    MONGO_INSERT_SUCCESS = "Documents inserted into MongoDB"
+    MONGO_FIND_RESULTS = "Documents retrieved from MongoDB"
+    MONGO_COLLECTION_DROPPED = "MongoDB collection dropped"
     # scrapper
     # parser
 
