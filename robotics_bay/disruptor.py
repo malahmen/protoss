@@ -42,7 +42,12 @@ class ApiService:
     async def handle_question(self, data):
         """Ask chain questions with vector DB context augmentation"""
         try:
-            answer = self.context.ollama.ask_question(data.question, self.context.qdrant)
+            #answer = self.context.ollama.ask_question(data.question, self.context.qdrant)
+            answer = self.context.ollama.ask_question(
+                question=data.question,
+                history=data.history,
+                qdrant=self.context.qdrant
+            )
         except Exception as e:
             self.context.logger.error(output_messages.API_QUESTION_KO, error=str(e))
             raise HTTPException(status_code=500, detail=str(e))
@@ -96,6 +101,7 @@ def get_service(request: Request) -> ApiService:
 # Pydantic models
 class QARequest(BaseModel):
     question: str = Field(..., min_length=1, max_length=1000)
+    history: List[dict] = Field(default=[]) 
     collection: str = Field(default=settings.collection_name)
     max_context_chunks: int = Field(default=5, ge=1, le=20)
     strict_context: bool = Field(default=True)

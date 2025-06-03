@@ -36,6 +36,16 @@ type Message = {
   timestamp: string
 }
 
+type ProcessedItem = {
+  name: string
+  date: string
+}
+
+type GatheredSite = {
+  url: string
+  date: string
+}
+
 // Environment variables
 const apiUrl = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:8000'
 const collection = process.env.NEXT_PUBLIC_DEFAULT_COLLECTION || 'acknowledged'
@@ -55,8 +65,41 @@ export default function AIInterface() {
   const [isRecording, setIsRecording] = useState(false)
   const [websiteUrl, setWebsiteUrl] = useState("")
   const [isLoading, setIsLoading] = useState(false)
+  const [processedFiles, setProcessedFiles] = useState<ProcessedItem[]>([])
+  const [gatheredSites, setGatheredSites] = useState<GatheredSite[]>([])
   const messagesEndRef = useRef<HTMLDivElement>(null)
   const [attachedFile, setAttachedFile] = useState<File | null>(null)
+
+  // Fetch processed files and gathered sites
+  useEffect(() => {
+    const fetchData = async () => {
+      try {
+        const [filesResponse, sitesResponse] = await Promise.all([
+          fetch(`${apiUrl}/files`),
+          fetch(`${apiUrl}/sites`)
+        ])
+
+        if (filesResponse.ok) {
+          const files = await filesResponse.json()
+          setProcessedFiles(files)
+        }
+
+        if (sitesResponse.ok) {
+          const sites = await sitesResponse.json()
+          setGatheredSites(sites)
+        }
+      } catch (error) {
+        console.error('Error fetching data:', error)
+        toast({
+          title: "Error",
+          description: "Failed to load processed files and sites.",
+          variant: "destructive",
+        })
+      }
+    }
+
+    fetchData()
+  }, [])
 
   // Scroll to bottom of messages
   useEffect(() => {
@@ -110,18 +153,22 @@ export default function AIInterface() {
       }
 
       // Send message to API
-      const response = await fetch(`${apiUrl}/chat`, {
+      const history = messages
+      .filter((msg) => msg.role === "user" || msg.role === "assistant")
+      .map(({ role, content }) => ({ role, content }))
+      const response = await fetch(`${apiUrl}/ask`, {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
         },
         body: JSON.stringify({
-          message: input,
+          question: input,
           collection,
-          maxChunks,
-          strictContext,
+          max_context_chunks: maxChunks,
+          strict_context: strictContext,
           websiteUrl: websiteUrl || undefined,
           fileId: fileData?.id,
+          history,
         }),
       })
 
@@ -130,11 +177,11 @@ export default function AIInterface() {
       }
 
       const data = await response.json()
-      
+      console.log(data)
       const assistantMessage: Message = {
         id: (Date.now() + 1).toString(),
         role: "assistant",
-        content: data.response,
+        content: data.answer,
         timestamp: new Date().toISOString(),
       }
       
@@ -209,7 +256,12 @@ export default function AIInterface() {
                     variant="outline"
                     size="icon"
                     className="h-8 w-8"
-                    onClick={() => document.getElementById("chat-file-input").click()}
+                    onClick={() => {
+                      const fileInput = document.getElementById("chat-file-input")
+                      if (fileInput) {
+                        fileInput.click()
+                      }
+                    }}
                     title="Attach file"
                   >
                     <FileText className="h-4 w-4" />
@@ -285,7 +337,7 @@ export default function AIInterface() {
               <div className="mt-4 flex-1 overflow-hidden">
                 <ProcessedItems
                   title="Processed Files"
-                  items={mockProcessedFiles}
+                  items={processedFiles}
                   icon={<FileText className="h-4 w-4" />}
                   keyField="name"
                 />
@@ -294,7 +346,7 @@ export default function AIInterface() {
             <TabsContent value="sites" className="h-full flex flex-col">
               <ProcessedItems
                 title="Gathered Sites"
-                items={mockGatheredSites}
+                items={gatheredSites}
                 icon={<Globe className="h-4 w-4" />}
                 keyField="url"
               />

@@ -144,7 +144,7 @@ Answer (copy exactly as written above):
 
         return qa_chain
 
-    def ask_question(self, question, qdrant):
+    def ask_question(self, question: str, qdrant, history: List[dict] = None):
         if not self._llm or not self._embedder:
             self.initialize_client()
         # Build retriever with inited embedder for qdrant
@@ -156,9 +156,19 @@ Answer (copy exactly as written above):
 
         qa_chain = self.build_qa_chain(retriever, prompt_template=prompt_template)
 
+        history_text = ""
+        if history:
+            for turn in history:
+                role = turn.get("role", "")
+                content = turn.get("content", "")
+                if role and content:
+                    history_text += f"{role.title()}: {content}\n"
+
+        combined_input = f"{history_text}\nUser: {question}"
+
         # Run chain
         try:
-            result = qa_chain.invoke({"input": question})
+            result = qa_chain.invoke({"input": combined_input})
         except Exception as e:
             self._logger.error("[Mothership] DEBUG ", error=str(e))
         self._logger.warning("[Mothership] DEBUG ", result=result)
