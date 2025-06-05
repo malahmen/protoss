@@ -146,6 +146,7 @@ services:
       - ./.env:/carrier/.env:ro
       - ./robotics_bay:/carrier/robotics_bay:rw
       - ./pylon:/carrier/pylon
+      - ./stargate/warp_gate:/stargate/warp_gate
     depends_on:
       - tempest
       - high-templar

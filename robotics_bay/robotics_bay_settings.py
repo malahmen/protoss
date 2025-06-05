@@ -4,7 +4,7 @@ from pathlib import Path
 
 class ApiSettings(BaseSettings):
     watch_folder: str = Field(..., env="WATCH_FOLDER")
-    #PROCESSED_FOLDER: str = Field(..., env="PROCESSED_FOLDER")
+    processed_folder: str = Field(..., env="PROCESSED_FOLDER")
     #CHECK_INTERVAL: int = Field(..., env="CHECK_INTERVAL")
 
     api_title: str = Field(..., env="API_TITLE")

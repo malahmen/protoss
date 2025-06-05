@@ -12,6 +12,7 @@ import time
 from robotics_bay.robotics_bay_settings import api_settings
 from pylon import settings, output_messages
 from pylon.context import ApplicationContext
+import os
 
 class ApiService:
     def __init__(self, context: ApplicationContext):
@@ -142,3 +143,47 @@ async def health_check(request: Request, service: ApiService = Depends(get_servi
 async def ask_question(request: Request, data: QARequest, service: ApiService = Depends(get_service)):
     """Ask a question with vector DB context augmentation"""
     return await service.handle_question(data)
+
+@app.post("/upload")
+async def upload_file(file: UploadFile = File(...)):
+    """Deal with uploaded files and send them to sentry folder for later processing"""
+    try:
+        upload_dir = api_settings.watch_folder # send the file here to be picked by sentry after
+        os.makedirs(upload_dir, exist_ok=True)
+        file_path = os.path.join(upload_dir, file.filename)
+        with open(file_path, "wb") as f:
+            f.write(await file.read())
+
+        return {"filename": file.filename, "id": file.filename}
+    except Exception as e:
+        # output_messages.API_UPLOAD_KO
+        context = app.state.context
+        context.logger.error("File upload error", error=str(e))
+        raise HTTPException(status_code=500, detail="File upload failed")
+    
+@app.get("/files")
+async def list_files():
+    upload_dir = api_settings.processed_folder
+    try:
+        files = []
+        for f in os.listdir(upload_dir):
+            if os.path.isfile(os.path.join(upload_dir, f)):
+                files.append({
+                    "name": f,
+                    "date": datetime.fromtimestamp(os.path.getmtime(os.path.join(upload_dir, f))).isoformat()
+                })
+        return files
+    except Exception as e:
+        # output_messages.API_FILE_LIST_KO
+        context = app.state.context
+        context.logger.error("File listing error", error=str(e))
+        raise HTTPException(status_code=500, detail=str(e))
+    
+@app.get("/sites")
+async def list_sites():
+    # Replace this with your real gathered site store (Redis, DB, etc.)
+    return [
+        { "url": "https://example.com/docs", "date": "2023-05-19T11:20:00Z" },
+        { "url": "https://knowledge-base.org/articles", "date": "2023-05-17T13:10:00Z" },
+        { "url": "https://research-papers.net/ai", "date": "2023-05-14T10:05:00Z" }
+    ]
