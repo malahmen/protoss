@@ -41,6 +41,12 @@ class EmbedderService:
                         self.context.logger.debug(f"{output_messages.EMBEDDER_NO_MESSAGES_DECODED}", decoded_pages=len(decoded_pages))
                         continue
                     
+                    # reads decoded message
+                    filename = decoded_pages.get("filename")
+                    message_id = decoded_pages.get("id")
+                    content_mime = decoded_pages.get(settings.redis_content_type)
+                    self.context.logger.debug(f"{message_id} - {filename} - {content_mime}")
+
                     # decode documents
                     base64_content = decoded_pages.get(settings.redis_content_field)
                     if not base64_content:
@@ -57,8 +63,26 @@ class EmbedderService:
                     vectors = self.context.ollama.get_vectors(documents=document_page)
                     self.context.logger.debug(f"{output_messages.EMBEDDER_REQUEST_VECTORS_ENDED}")
 
+                    # add metadata to the vectors
+                    documents_with_metadata = []
+                    for i, content in enumerate(document_page):
+                        documents_with_metadata.append({
+                            "vector": vectors[i],
+                            "text": content,
+                            "metadata": {
+                                "source": filename,
+                                "chunk_index": i
+                            }
+                        })
+
+                    # extract vectors, texts, and metadata
+                    vectors = [doc["vector"] for doc in documents_with_metadata]
+                    texts = [doc["text"] for doc in documents_with_metadata]
+                    metadata = [doc["metadata"] for doc in documents_with_metadata]
+
                     # add data to qdrant
-                    self.context.qdrant.add_to_qdrant(vectors, document_page)
+                    #self.context.qdrant.add_to_qdrant(documents_with_metadata)
+                    self.context.qdrant.add_to_qdrant(vectors, texts, metadata)
                 except Exception as e:
                     self.context.logger.error(f"{output_messages.EMBEDDER_EXCEPTION}", error=str(e))
                     traceback.print_exc()

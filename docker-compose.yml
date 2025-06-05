@@ -126,7 +126,7 @@ services:
       - tempest
       - mothership
       - high-templar
-    mem_limit: 1g
+    mem_limit: 2g
     restart: unless-stopped
   disruptor:
     container_name: disruptor

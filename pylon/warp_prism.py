@@ -77,7 +77,7 @@ class QdrantGateway:
 
         return results
         
-    def generate_points(self, vectors, documents):
+    def generate_points(self, vectors, documents, metadata):
         if not vectors or not documents:
             self._logger.debug(f"{output_messages.QDRANT_POINTS_SKIPPED}")
             return None
@@ -86,9 +86,9 @@ class QdrantGateway:
                     PointStruct(
                         id=str(uuid.uuid4()),
                         vector=vector,
-                        payload={str(settings.index_field): document}
+                        payload={str(settings.index_field): document, **metadata[i]}
                     )
-                    for vector, document in zip(vectors, documents)
+                    for i, (vector, document) in enumerate(zip(vectors, documents))
                 ]
         return points
     
@@ -99,10 +99,10 @@ class QdrantGateway:
                         points=points,
                     )
 
-    def add_to_qdrant(self, vectors, texts):
+    def add_to_qdrant(self, vectors, texts, metadata):
         if not vectors or not texts:
             return
-        points = self.generate_points(vectors, texts)
+        points = self.generate_points(vectors, texts, metadata)
         self.add_points(points)
 
     def get_relevant_documents(self, vector, query):
