@@ -173,11 +173,7 @@ Answer (copy exactly as written above):
             self._logger.error("[Mothership] DEBUG ", error=str(e))
         self._logger.warning("[Mothership] DEBUG ", result=result)
 
-        #context_chunks = [doc.page_content for doc in result.get("context", [])]
-        context_chunks = [
-            f"=== File: {doc.metadata.get('source', 'unknown')} ===\n{doc.page_content.strip()}"
-            for doc in result.get("context", [])
-        ]
+        context_chunks = [doc.page_content for doc in result.get("context", [])]
         self._logger.warning("[Mothership] DEBUG ", context_chunks=context_chunks)
 
         answer = result.get("answer", "").strip();

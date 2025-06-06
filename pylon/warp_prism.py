@@ -53,15 +53,21 @@ class QdrantGateway:
 
     def create_payload_index(self, field_name="text", field_schema=PayloadSchemaType.TEXT):
         if self._qdrant_client:
+            index_definitions = {
+                field_name: PayloadSchemaType.TEXT,
+                "source": PayloadSchemaType.KEYWORD,
+                "chunk_index": PayloadSchemaType.INTEGER,
+            }
             collection_info = self._qdrant_client.get_collection(collection_name=settings.collection_name)
             existing_indexes = collection_info.payload_schema or {}
-            if field_name not in existing_indexes:
-                self._qdrant_client.create_payload_index(
-                    collection_name=settings.collection_name,
-                    field_name=field_name,
-                    field_schema=field_schema
-                )
-                self._logger.info(f"{output_messages.QDRANT_INDEX_CREATION}", name=field_name)
+            for field, schema in index_definitions.items():
+                if field not in existing_indexes:
+                    self._qdrant_client.create_payload_index(
+                        collection_name=settings.collection_name,
+                        field_name=field,
+                        field_schema=schema
+                    )
+                    self._logger.info(f"{output_messages.QDRANT_INDEX_CREATION}", name=field)
 
     def search(self, query_vector, question, collection=settings.collection_name):
         results = self._qdrant_client.search(
