@@ -154,8 +154,8 @@ export default function AIInterface() {
 
       // Send message to API
       const history = messages
-      .filter((msg) => msg.role === "user" || msg.role === "assistant")
-      .map(({ role, content }) => ({ role, content }))
+        .filter((msg) => (msg.role === "user" || msg.role === "assistant") && msg.id !== "welcome")
+        .map(({ role, content }) => ({ role, content }))
       const response = await fetch(`${apiUrl}/ask`, {
         method: 'POST',
         headers: {
