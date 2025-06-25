@@ -12,4 +12,5 @@ services:
       - NEXT_PUBLIC_APP_URL=http://localhost:3000
     volumes:
       - ./.env:/app/.env
+      - ./stargate:/stargate
     restart: unless-stopped 

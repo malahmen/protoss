@@ -122,6 +122,7 @@ services:
       - ./nexus:/carrier/nexus:rw
       - ./pylon:/carrier/pylon
       - ./stargate:/stargate
+      - ./stargate/warp_gate:/stargate/warp_gate
     depends_on:
       - tempest
       - mothership
@@ -146,6 +147,7 @@ services:
       - ./.env:/carrier/.env:ro
       - ./robotics_bay:/carrier/robotics_bay:rw
       - ./pylon:/carrier/pylon
+      - ./stargate:/stargate
       - ./stargate/warp_gate:/stargate/warp_gate
     depends_on:
       - tempest

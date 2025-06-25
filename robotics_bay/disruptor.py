@@ -1,4 +1,4 @@
-from fastapi import FastAPI, File, Request, HTTPException, Depends, UploadFile
+from fastapi import FastAPI, File, Request, HTTPException, Depends, UploadFile, Query
 from fastapi.middleware.cors import CORSMiddleware
 from fastapi.middleware import Middleware
 from slowapi import Limiter, _rate_limit_exceeded_handler
@@ -139,7 +139,7 @@ async def health_check(request: Request, service: ApiService = Depends(get_servi
     return await service.health_check()
 
 @app.post("/ask", response_model=QAResponse)
-@limiter.limit("10/minute")
+@limiter.limit("30/minute")
 async def ask_question(request: Request, data: QARequest, service: ApiService = Depends(get_service)):
     """Ask a question with vector DB context augmentation"""
     return await service.handle_question(data)
@@ -148,17 +148,21 @@ async def ask_question(request: Request, data: QARequest, service: ApiService = 
 async def upload_file(file: UploadFile = File(...)):
     """Deal with uploaded files and send them to sentry folder for later processing"""
     try:
-        upload_dir = api_settings.watch_folder # send the file here to be picked by sentry after
+        #upload_dir = api_settings.watch_folder # send the file here to be picked by sentry after
+        upload_dir = os.path.abspath(api_settings.watch_folder)
         os.makedirs(upload_dir, exist_ok=True)
+        #context = app.state.context
         file_path = os.path.join(upload_dir, file.filename)
+        file_content = await file.read()
+        #context.logger.info("File content length", length=len(file_content), filename=file.filename)
         with open(file_path, "wb") as f:
-            f.write(await file.read())
-
+            f.write(file_content)
+            #context.logger.warn("File to upload", file=file_path)
         return {"filename": file.filename, "id": file.filename}
     except Exception as e:
         # output_messages.API_UPLOAD_KO
-        context = app.state.context
-        context.logger.error("File upload error", error=str(e))
+        #context = app.state.context
+        #context.logger.error("File upload error", error=str(e))
         raise HTTPException(status_code=500, detail="File upload failed")
     
 @app.get("/files")
@@ -187,3 +191,37 @@ async def list_sites():
         { "url": "https://knowledge-base.org/articles", "date": "2023-05-17T13:10:00Z" },
         { "url": "https://research-papers.net/ai", "date": "2023-05-14T10:05:00Z" }
     ]
+
+@app.get("/file_status")
+async def file_status(id: str = Query(...)):
+    """
+    Check if a file has been fully processed (e.g., inserted into Qdrant).
+    Uses a status file in the processed folder.
+    """
+    #context = app.state.context
+    processed_dir = os.path.abspath(api_settings.processed_folder)
+    status_path = os.path.join(processed_dir, f"{id}.status")
+    #context.logger.warn("Looking for file", file=status_path)
+    if os.path.exists(status_path):
+        with open(status_path, "r") as f:
+            status = f.read().strip()
+        #context.logger.warn("File status ", status=status, id=id)
+        return {"id": id, "status": status}
+    else:
+        return {"id": id, "status": "processing"}
+    
+@app.delete("/file_status")
+async def delete_status(id: str = Query(...)):
+    """
+    Clear the status file for a given file id.
+    """
+    processed_dir = api_settings.processed_folder
+    status_path = os.path.join(processed_dir, f"{id}.status")
+    if os.path.exists(status_path):
+        try:
+            os.remove(status_path)
+            return {"id": id, "status": "removed"}
+        except Exception as e:
+            raise HTTPException(status_code=500, detail=str(e))
+    else:
+        return {"id": id, "status": "not_found"}

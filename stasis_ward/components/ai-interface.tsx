@@ -144,7 +144,56 @@ export default function AIInterface() {
         toast({
           title: "File uploaded",
           description: `${attachedFile.name} has been uploaded successfully.`,
+          variant: `default`,
         })
+        const fileId = fileData.id
+
+        // Poll for file readiness
+        let status = "processing"
+        let attempts = 0
+        while (status !== "ready" && status !== "processed" && attempts < 1800) { // e.g., 1800 attempts = half an hour
+          await new Promise(res => setTimeout(res, 1000))
+          const statusResponse = await fetch(`${apiUrl}/file_status?id=${fileId}`)
+          const statusData = await statusResponse.json()
+          status = statusData.status
+          attempts++
+        }
+        if (status !== "processing") {
+          setIsLoading(false)
+        }
+        if (status !== "ready" &&  status !== "processed") {
+          toast({ title: "Timeout", description: `${attachedFile.name} processing took too long.`, variant: "destructive",})
+          return
+        }
+        if (status == "ready" || status == "processed") {
+          toast({ title: "File processed", description: `${attachedFile.name} has been processed successfully.` })
+          // call endpoint to clear fileid status file - ones shot
+          try {
+            const statusResponse = await fetch(`${apiUrl}/file_status?id=${fileId}`, {
+              method: 'DELETE',
+            })
+            const statusData = await statusResponse.json()
+            if (statusData.status === "removed") {
+              toast({
+                title: "File status cleared",
+                description: `${attachedFile.name} had its status cleared successfully.`,
+              })
+            } else {
+              toast({
+                title: "File status not found",
+                description: `No status file was found for ${attachedFile.name}.`,
+                variant: "destructive",
+              })
+            }
+          } catch (err) {
+            toast({
+              title: "Error",
+              description: `Failed to clear status for ${attachedFile.name}.`,
+              variant: "destructive",
+            })
+          }
+        }
+
         setAttachedFile(null)
         const fileInput = document.getElementById("chat-file-input") as HTMLInputElement | null
         if (fileInput) {

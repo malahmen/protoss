@@ -4,6 +4,7 @@ from pathlib import Path
 
 class EmbedderSettings(BaseSettings):
     check_interval: int = Field(..., env="CHECK_INTERVAL")
+    processed_folder: str = Field(..., env="PROCESSED_FOLDER")
 
     model_config = SettingsConfigDict(
         env_file = Path(__file__).resolve().parent / ".env",

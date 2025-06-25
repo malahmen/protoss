@@ -2,6 +2,7 @@ import asyncio
 import base64
 import json
 import traceback
+import os
 from pylon import settings, output_messages
 from pylon.context import ApplicationContext
 from nexus_settings import embedder_settings
@@ -83,6 +84,17 @@ class EmbedderService:
                     # add data to qdrant
                     #self.context.qdrant.add_to_qdrant(documents_with_metadata)
                     self.context.qdrant.add_to_qdrant(vectors, texts, metadata)
+
+                    # After successful insertion into Qdrant, set the file status
+                    try:
+                        status_folder = embedder_settings.processed_folder
+                        os.makedirs(status_folder, exist_ok=True)
+                        status_file = os.path.join(status_folder, f"{filename}.status")
+                        with open(status_file, "w") as f:
+                            f.write("processed")
+                        self.context.logger.info(f"Status file written: {status_file}")
+                    except Exception as e:
+                        self.context.logger.error("Failed to write status file", error=str(e))
                 except Exception as e:
                     self.context.logger.error(f"{output_messages.EMBEDDER_EXCEPTION}", error=str(e))
                     traceback.print_exc()
