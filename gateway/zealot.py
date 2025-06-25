@@ -112,31 +112,48 @@ class ExtractorService:
                     if not file_message:
                         continue
                     
-                    # decode message
+                    # decodes the message
                     decoded_message = self.context.redis.decode_message(file_message)
                     if not decoded_message:
                         continue
                     
-                    # validate message
+                    # validates message
                     required_fields = ["filename", "id", settings.redis_content_field, settings.redis_content_type]
                     valid = self.context.redis.is_valid_message(decoded_message, required_fields)
                     if not valid:
                         continue
                     
-                    # read decoded message - all fields have been checked
+                    # reads decoded message - all fields have been checked
                     filename = decoded_message.get("filename")
                     message_id = decoded_message.get("id")
                     content_mime = decoded_message.get(settings.redis_content_type)
                     base64_content = decoded_message.get(settings.redis_content_field)
                     file_bytes = base64.b64decode(base64_content)
                     
-                    # extract documents from message
+                    # extracts documents from message
                     documents = self.read_documents_from_message(message_id, filename, file_bytes, content_mime)
                     if not documents:
                         continue
 
-                    # send documents to their redis queue
-                    await self.context.redis.send_it(queue=settings.redis_queue_documents, content=documents, message_id=message_id)
+                    serialized = json.dumps([
+                        d.dict() if hasattr(d, "dict") else str(d)
+                        for d in documents
+                    ])
+                    encoded_content = base64.b64encode(serialized.encode(settings.encoding)).decode(settings.encoding)
+
+                    # sets the payload with informatio for metadata
+                    payload = self.context.redis.generate_message(
+                        id=message_id,
+                        encoded_content=encoded_content,
+                        filename=filename,
+                        content_field=None,
+                        content_type=None,
+                        content_mime=content_mime
+                    )
+
+                    # sends documents to their redis queue
+                    await self.context.redis.send_message(payload, settings.redis_queue_documents)
+                    #await self.context.redis.send_it(queue=settings.redis_queue_documents, content=payload, message_id=message_id)
 
                 except Exception as e:
                     self.context.logger.error(f"{output_messages.EXTRACTOR_EXCEPTION}", error=str(e))

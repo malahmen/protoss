@@ -122,11 +122,12 @@ services:
       - ./nexus:/carrier/nexus:rw
       - ./pylon:/carrier/pylon
       - ./stargate:/stargate
+      - ./stargate/warp_gate:/stargate/warp_gate
     depends_on:
       - tempest
       - mothership
       - high-templar
-    mem_limit: 1g
+    mem_limit: 2g
     restart: unless-stopped
   disruptor:
     container_name: disruptor
@@ -146,6 +147,8 @@ services:
       - ./.env:/carrier/.env:ro
       - ./robotics_bay:/carrier/robotics_bay:rw
       - ./pylon:/carrier/pylon
+      - ./stargate:/stargate
+      - ./stargate/warp_gate:/stargate/warp_gate
     depends_on:
       - tempest
       - high-templar

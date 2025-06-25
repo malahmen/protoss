@@ -53,15 +53,21 @@ class QdrantGateway:
 
     def create_payload_index(self, field_name="text", field_schema=PayloadSchemaType.TEXT):
         if self._qdrant_client:
+            index_definitions = {
+                field_name: PayloadSchemaType.TEXT,
+                "source": PayloadSchemaType.KEYWORD,
+                "chunk_index": PayloadSchemaType.INTEGER,
+            }
             collection_info = self._qdrant_client.get_collection(collection_name=settings.collection_name)
             existing_indexes = collection_info.payload_schema or {}
-            if field_name not in existing_indexes:
-                self._qdrant_client.create_payload_index(
-                    collection_name=settings.collection_name,
-                    field_name=field_name,
-                    field_schema=field_schema
-                )
-                self._logger.info(f"{output_messages.QDRANT_INDEX_CREATION}", name=field_name)
+            for field, schema in index_definitions.items():
+                if field not in existing_indexes:
+                    self._qdrant_client.create_payload_index(
+                        collection_name=settings.collection_name,
+                        field_name=field,
+                        field_schema=schema
+                    )
+                    self._logger.info(f"{output_messages.QDRANT_INDEX_CREATION}", name=field)
 
     def search(self, query_vector, question, collection=settings.collection_name):
         results = self._qdrant_client.search(
@@ -77,7 +83,7 @@ class QdrantGateway:
 
         return results
         
-    def generate_points(self, vectors, documents):
+    def generate_points(self, vectors, documents, metadata):
         if not vectors or not documents:
             self._logger.debug(f"{output_messages.QDRANT_POINTS_SKIPPED}")
             return None
@@ -86,9 +92,9 @@ class QdrantGateway:
                     PointStruct(
                         id=str(uuid.uuid4()),
                         vector=vector,
-                        payload={str(settings.index_field): document}
+                        payload={str(settings.index_field): document, **metadata[i]}
                     )
-                    for vector, document in zip(vectors, documents)
+                    for i, (vector, document) in enumerate(zip(vectors, documents))
                 ]
         return points
     
@@ -99,10 +105,10 @@ class QdrantGateway:
                         points=points,
                     )
 
-    def add_to_qdrant(self, vectors, texts):
+    def add_to_qdrant(self, vectors, texts, metadata):
         if not vectors or not texts:
             return
-        points = self.generate_points(vectors, texts)
+        points = self.generate_points(vectors, texts, metadata)
         self.add_points(points)
 
     def get_relevant_documents(self, vector, query):
