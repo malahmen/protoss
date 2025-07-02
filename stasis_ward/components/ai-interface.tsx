@@ -9,11 +9,12 @@ import { Textarea } from "@/components/ui/textarea"
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs"
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
 import { ScrollArea } from "@/components/ui/scroll-area"
-import { Send, Globe, FileText, X } from "lucide-react"
+import { Send, Globe, FileText, X, Volume2, VolumeX } from "lucide-react"
 import FileUploader from "@/components/file-uploader"
 import ChatMessage from "@/components/chat-message"
 import ProcessedItems from "@/components/processed-items"
 import SpeechToText from "@/components/speech-to-text"
+import { speakText } from "@/lib/utils"
 import { toast } from "@/components/ui/use-toast"
 
 // Mock data for demonstration
@@ -69,6 +70,7 @@ export default function AIInterface() {
   const [gatheredSites, setGatheredSites] = useState<GatheredSite[]>([])
   const messagesEndRef = useRef<HTMLDivElement>(null)
   const [attachedFile, setAttachedFile] = useState<File | null>(null)
+  const [isSpeaking, setIsSpeaking] = useState(true)
 
   // Fetch processed files and gathered sites
   useEffect(() => {
@@ -235,6 +237,7 @@ export default function AIInterface() {
       }
       
       setMessages((prev) => [...prev, assistantMessage])
+      speakText(data.answer, isSpeaking)
     } catch (error) {
       console.error('Error:', error)
       toast({
@@ -304,7 +307,7 @@ export default function AIInterface() {
                   <Button
                     variant="outline"
                     size="icon"
-                    className="h-8 w-8"
+                    className="h-10 w-10"
                     onClick={() => {
                       const fileInput = document.getElementById("chat-file-input")
                       if (fileInput) {
@@ -313,13 +316,26 @@ export default function AIInterface() {
                     }}
                     title="Attach file"
                   >
-                    <FileText className="h-4 w-4" />
+                    <FileText className="h-8 w-8" />
                   </Button>
                   <SpeechToText
                     isRecording={isRecording}
                     setIsRecording={setIsRecording}
                     onResult={handleSpeechResult}
                   />
+                    <Button
+                    variant={isSpeaking ? "secondary" : "outline"}
+                    size="icon"
+                    className="h-10 w-10"
+                    onClick={() => setIsSpeaking((prev) => !prev)}
+                    title={isSpeaking ? "Mute voice" : "Unmute voice"}
+                  >
+                    {isSpeaking ? (
+                      <Volume2 className="h-8 w-8" />
+                    ) : (
+                      <VolumeX className="h-8 w-8" />
+                    )}
+                  </Button>
                   <Button
                     onClick={handleSendMessage}
                     disabled={isLoading || (!input.trim() && !websiteUrl.trim())}
