@@ -41,8 +41,14 @@ class OutputMessages():
     EXTRACTOR_TEXT_KO = "[Zealot hit] Failed to decode text"
     EXTRACTOR_JSON_KO = "[Zealot hit] Failed to decode JSON"
     EXTRACTOR_JSON_KO_MSG = "[Zealot hit] Invalid JSON"
-    EXTRACTOR_JSON_DECODE_KO = "[Zealot hit] Invalide file encoding"
+    EXTRACTOR_JSON_DECODE_KO = "[Zealot hit] Invalid file encoding"
     EXTRACTOR_UNSUPPORTED_TYPE = "[Zealot hit] Unsupported file type"
+    EXTRACTOR_REQUIRED_FIELDS_KO = "[Zealot hit] Missing required field"
+    EXTRACTOR_BASE64_KO = "[Zealot hit] Invalid base64 content"
+    EXTRACTOR_DOCUMENT_KO = "[Zealot hit] Document extraction failed"
+    EXTRACTOR_PAYLOAD_KO ="[Zealot hit] Invalid JSON payload"
+    EXTRACTOR_PAYLOAD_PROCESSING_KO = "[Zealot hit] Payload failed to process"
+
     # chunker - stalker.py
     CHUNKER_INITIALIZATION = "[Stalker] Ready to serve."
     CHUNKER_EXCEPTION = "[Stalker down] Exploded "
@@ -51,6 +57,13 @@ class OutputMessages():
     CHUNKER_WAIT_START = "[Stalker] Wating for orders."
     CHUNKER_READY = "[Stalker] Chunker sharpen"
     CHUNKER_DONE = "[Stalker] Document chunks extracted"
+    CHUNKER_PAYLOAD_KO ="[Stalker hit] Invalid JSON payload"
+    CHUNKER_PAYLOAD_PROCESSING_KO = "[Stalker hit] Payload failed to process"
+    CHUNKER_REQUIRED_FILENAME_KO = "[Stalker hit] File name is required"
+    CHUNKER_REQUIRED_MESSAGE_ID_KO = "[Stalker hit] Message ID is required"
+    CHUNKER_REQUIRED_CONTENT_KO = "[Stalker hit] No content detected"
+    CHUNKER_BASE64_KO = "[Stalker hit] Invalid base64 content"
+
     # embedder - probe.py
     EMBEDDER_INITIALIZATION = "[Probe] Ready to serve."
     EMBEDDER_EXCEPTION = "[Probe down] Exploded "
@@ -61,6 +74,15 @@ class OutputMessages():
     EMBEDDER_NO_MESSAGES_DECODED="[Probe] No messages in decoded data. "
     EMBEDDER_REQUEST_VECTORS_START="[Probe] Requesting vectors."
     EMBEDDER_REQUEST_VECTORS_ENDED="[Probe] Vectors acquired."
+    EMBEDDER_REQUIRED_FILENAME_KO = "[Probe] File name is required"
+    EMBEDDER_REQUIRED_MESSAGE_ID_KO = "[Probe] Message ID is required"
+    EMBEDDER_REQUIRED_CONTENT_KO = "[Probe] No content detected"
+    EMBEDDER_BASE64_KO = "[Probe] Invalid base64 content"
+    EMBEDDER_STATUS_WKO = "[Probe] Failed to write status file"
+    EMBEDDER_STATUS_WOK = "[Probe] Status file written"
+    EMBEDDER_PAYLOAD_KO ="[Probe] Invalid JSON payload"
+    EMBEDDER_PAYLOAD_PROCESSING_KO = "[Probe] Payload failed to process"
+
     # qdrant
     QDRANT_COLLECTION_EXISTS="[Warp Prism] Collection exists. "
     QDRANT_COLLECTION_CREATION="[Warp Prism] Collection created. "

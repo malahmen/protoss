@@ -8,6 +8,8 @@ import shutil
 from pylon import settings, output_messages
 from pylon.context import ApplicationContext
 from cybernetic_core_settings import watcher_settings
+from fastapi import FastAPI, UploadFile, File, HTTPException
+import uvicorn
 
 class WatcherService:
     def __init__(self):
@@ -39,33 +41,36 @@ class WatcherService:
             raise RuntimeError(f"{output_messages.WATCHER_NO_FOLDER_KO}: {watcher_settings.watch_folder}")
         return {f for f in os.listdir(watcher_settings.watch_folder) if self.is_supported(f)}
 
-    async def send_files(self, session, filepath):
-        """Asynchronous file ingestion."""
+    async def create_payload_from_file(self, filepath):
         filename = os.path.basename(filepath)
         self.context.logger.debug(f"{output_messages.WATCHER_READ_FILE_START}", filename=filename)
-        
-        with open(filepath, 'rb') as f:
+        with open(filepath, "rb") as f:
             file_content = f.read()
-            content_mime = self.mime.from_buffer(file_content)
-            encoded_content = base64.b64encode(file_content).decode(settings.encoding)
+        content_mime = self.mime.from_buffer(file_content)
+        encoded_content = base64.b64encode(file_content).decode(settings.encoding)
+        
+        payload = self.context.redis.generate_message(
+            id=None,
+            encoded_content=encoded_content,
+            filename=filename,
+            content_field=None,
+            content_type=None,
+            content_mime=content_mime,
+        )
+        return payload
 
-            payload = self.context.redis.generate_message(
-                id=None,
-                encoded_content=encoded_content,
-                filename=filename,
-                content_field=None,
-                content_type=None,
-                content_mime=content_mime
-            )
+    async def send_files(self, session, filepath):
+        """Asynchronous file ingestion."""
+        payload = await self.create_payload_from_file(filepath)
 
-            self.context.logger.debug(f"{output_messages.WATCHER_QUEUE_TARGET}", queue=settings.redis_queue_files)
-            await self.context.redis.send_message(payload, settings.redis_queue_files)
+        self.context.logger.debug(f"{output_messages.WATCHER_QUEUE_TARGET}", queue=settings.redis_queue_files)
+        await self.context.redis.send_message(payload, settings.redis_queue_files)
 
-            processed_dir = os.path.join(watcher_settings.watch_folder, watcher_settings.processed_folder.lstrip("/"))
-            self.context.logger.debug(f"{output_messages.WATCHER_MOVE_FILE_START}", directory=processed_dir)
-            
-            os.makedirs(processed_dir, exist_ok=True)
-            shutil.move(filepath, os.path.join(processed_dir, filename))
+        processed_dir = os.path.join(watcher_settings.watch_folder, watcher_settings.processed_folder.lstrip("/"))
+        self.context.logger.debug(f"{output_messages.WATCHER_MOVE_FILE_START}", directory=processed_dir)
+
+        os.makedirs(processed_dir, exist_ok=True)
+        shutil.move(filepath, os.path.join(processed_dir, os.path.basename(filepath)))
 
     async def look_for_files(self):
         await asyncio.sleep(10)
@@ -92,10 +97,37 @@ class WatcherService:
 
                 await asyncio.sleep(watcher_settings.check_interval)
 
+    async def ingest_file(self, filepath):
+        return await self.create_payload_from_file(filepath)
+
+watcher_api = FastAPI()
+watcher_worker = WatcherService()
+
+@watcher_api.post("/upload")
+async def upload_file(file: UploadFile = File(...)):
+    processed_dir = os.path.join(watcher_settings.watch_folder, watcher_settings.processed_folder.lstrip("/"))
+    os.makedirs(processed_dir, exist_ok=True)
+
+    file_path = os.path.join(processed_dir, file.filename)
+    try:
+        with open(file_path, "wb") as f:
+            content = await file.read()
+            f.write(content)
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=f"Failed to save file: {str(e)}")
+
+    payload = await watcher_worker.create_payload_from_file(file_path)
+    return payload
+
 if __name__ == "__main__":
     async def main():
-        service = WatcherService()
-        await service.initialize()
-        await service.run()
+        await watcher_worker.initialize()
+        config = uvicorn.Config(watcher_api, host="0.0.0.0", port=8001, log_level="info")
+        server = uvicorn.Server(config)
+
+        await asyncio.gather(
+            server.serve(),
+            watcher_worker.run()
+        )
 
     asyncio.run(main())

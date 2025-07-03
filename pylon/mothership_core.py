@@ -147,15 +147,36 @@ Answer (copy exactly as written above):
     def ask_question(self, question: str, qdrant, history: List[dict] = None):
         if not self._llm or not self._embedder:
             self.initialize_client()
+        
+        try:
+            context_chunks = self._select_context_chunks(question, qdrant)
+            summary = self._summarize_context_chunks(context_chunks)
+            answer = self._generate_answer(question, summary, history)
+        except Exception as e:
+            self._logger.error("[Mothership] Error in MCP pipeline", error=str(e))
+            raise
+
+        return {
+            "answer": answer,
+            "context_chunks": context_chunks,
+            "model": settings.model_name,
+            "timestamp": datetime.utcnow()
+        }
+
+    def _select_context_chunks(self, question: str, qdrant) -> List[str]:
         # Build retriever with inited embedder for qdrant
         retriever = self.get_retriever(qdrant=qdrant)
         if not retriever:
             raise ValueError("Retriever could not be initialized")
-        # Build QA chain using custom prompt
-        prompt_template = self.get_prompt_template()
+        docs = retriever.get_relevant_documents(query=question)
+        return [doc.page_content for doc in docs]
 
-        qa_chain = self.build_qa_chain(retriever, prompt_template=prompt_template)
+    def _summarize_context_chunks(self, context_chunks: List[str]) -> str:
+        context_text = "\n".join(context_chunks)
+        prompt = f"Summarize the following context for clarity:\n\n{context_text}\n\nSummary:"
+        return self.get_llm().invoke(prompt).strip()
 
+    def _generate_answer(self, question: str, summary: str, history: List[dict] = None) -> str:
         history_text = ""
         if history:
             for turn in history:
@@ -164,7 +185,11 @@ Answer (copy exactly as written above):
                 if role and content:
                     history_text += f"{role.title()}: {content}\n"
 
-        combined_input = f"{history_text}\nUser: {question}"
+        combined_input = f"{history_text}\nContext Summary: {summary}\nUser: {question}"
+        prompt_template = self.get_prompt_template()
+        prompt = PromptTemplate.from_template(prompt_template)
+        combine_documents_chain = create_stuff_documents_chain(self._llm, prompt)
+        qa_chain = create_retrieval_chain(None, combine_documents_chain)  # No retriever; we manually provide input
 
         # Run chain
         try:
