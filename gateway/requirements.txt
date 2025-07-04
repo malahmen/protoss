@@ -14,3 +14,5 @@ sentence-transformers>=2.6.0      # mothership_core
 langchain-huggingface>=0.1.0      # mothership_core
 hf_xet
 pymongo
+fastapi 
+uvicorn[standard]

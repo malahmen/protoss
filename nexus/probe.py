@@ -88,7 +88,6 @@ class EmbedderService:
         metadata = [doc["metadata"] for doc in documents_with_metadata]
 
         # add data to qdrant
-        #self.context.qdrant.add_to_qdrant(documents_with_metadata)
         self.context.qdrant.add_to_qdrant(vectors, texts, metadata)
 
         # After successful insertion into Qdrant, set the file status

@@ -82,6 +82,7 @@ class OutputMessages():
     EMBEDDER_STATUS_WOK = "[Probe] Status file written"
     EMBEDDER_PAYLOAD_KO ="[Probe] Invalid JSON payload"
     EMBEDDER_PAYLOAD_PROCESSING_KO = "[Probe] Payload failed to process"
+    EMBEDDER_OK = "[Probe] Embedding completed and stored in Qdrant."
 
     # qdrant
     QDRANT_COLLECTION_EXISTS="[Warp Prism] Collection exists. "

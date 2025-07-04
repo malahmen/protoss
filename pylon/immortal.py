@@ -33,6 +33,7 @@ class ApplicationSettings(BaseSettings):
     collection_name: str = Field(..., env="COLLECTION_NAME")
     vector_dimension: int = Field(..., env="VECTOR_DIMENSION")
     index_field: str = Field(..., env="INDEX_FIELD")
+    tokenizer_language: str = Field(..., env="TOKENIZER_LANGUAGE")
 
     # Redis
     redis_host: str = Field(..., env="REDIS_HOST")

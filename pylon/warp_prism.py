@@ -1,6 +1,7 @@
 from pylon import settings, output_messages
 from qdrant_client import QdrantClient
-from qdrant_client.models import PointStruct, VectorParams, Distance, PayloadSchemaType, SearchParams, Filter, FieldCondition, MatchText, MatchValue
+from qdrant_client.http.models import TextIndexParams, TextIndexType
+from qdrant_client.models import PointStruct, VectorParams, Distance, PayloadSchemaType, SearchParams, TokenizerType, Filter, FieldCondition, MatchText, MatchValue
 import uuid
 import structlog
 import grpc
@@ -37,13 +38,12 @@ class QdrantGateway:
                 exists = self._qdrant_client.collection_exists(settings.collection_name)
                 self._logger.info(f"QDRANT DEBUG ", name=settings.collection_name, exists=exists)
                 if not exists:
-                    self._qdrant_client.create_collection(
-                        collection_name=settings.collection_name,
-                        vectors_config=VectorParams(
-                            size=settings.vector_dimension,
-                            distance=Distance.COSINE
-                        )
-                    )
+                    # create vector configuration object
+                    vectors_config = VectorParams(size=settings.vector_dimension, distance=Distance.COSINE)
+                    # create the collection
+                    self._qdrant_client.create_collection( collection_name=settings.collection_name, vectors_config=vectors_config)
+                    # create the indexes (the text searchable ones)
+                    self.create_payload_index(field_name=settings.index_field)
                     self._logger.info(f"{output_messages.QDRANT_COLLECTION_CREATION}", name=settings.collection_name)
                 else:
                     self._logger.info(f"{output_messages.QDRANT_COLLECTION_EXISTS}", result=self._qdrant_client.collection_exists(settings.collection_name))
@@ -52,22 +52,45 @@ class QdrantGateway:
                     raise
 
     def create_payload_index(self, field_name="text", field_schema=PayloadSchemaType.TEXT):
-        if self._qdrant_client:
-            index_definitions = {
-                field_name: PayloadSchemaType.TEXT,
-                "source": PayloadSchemaType.KEYWORD,
-                "chunk_index": PayloadSchemaType.INTEGER,
-            }
-            collection_info = self._qdrant_client.get_collection(collection_name=settings.collection_name)
-            existing_indexes = collection_info.payload_schema or {}
-            for field, schema in index_definitions.items():
-                if field not in existing_indexes:
-                    self._qdrant_client.create_payload_index(
-                        collection_name=settings.collection_name,
-                        field_name=field,
-                        field_schema=schema
-                    )
-                    self._logger.info(f"{output_messages.QDRANT_INDEX_CREATION}", name=field)
+        if not self._qdrant_client:
+            return
+
+        field_configs = {
+            # Text fields use TextIndexParams
+            field_name: TextIndexParams(
+                type=TextIndexType.TEXT,
+                tokenizer=TokenizerType.WORD,
+                min_token_len=2,
+                max_token_len=20,
+                lowercase=True
+            ),
+            "source": TextIndexParams(
+                type=TextIndexType.TEXT,
+                tokenizer=TokenizerType.WORD,
+                min_token_len=2,
+                max_token_len=20,
+                lowercase=True
+            ),
+            # Non-text fields use PayloadSchemaType directly
+            "chunk_index": PayloadSchemaType.INTEGER
+        }
+
+        for field, config in field_configs.items():
+            if isinstance(config, TextIndexParams):
+                # Text field case
+                self._qdrant_client.create_payload_index(
+                    collection_name=settings.collection_name,
+                    field_name=field,
+                    field_schema=config
+                )
+            else:
+                # Non-text field case
+                self._qdrant_client.create_payload_index(
+                    collection_name=settings.collection_name,
+                    field_name=field,
+                    field_schema=config
+                )
+            self._logger.info(f"{output_messages.QDRANT_INDEX_CREATION}", name=field)
 
     def search(self, query_vector, question, collection=settings.collection_name):
         results = self._qdrant_client.search(
